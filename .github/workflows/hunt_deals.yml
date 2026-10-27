@@ -2,9 +2,11 @@ name: 24/7 Autonomous Gun Sourcing Engine
 
 on:
   schedule:
-    # Runs automatically every 30 minutes, 24/7
     - cron: '*/30 * * * *'
-  workflow_dispatch: # Allows manual one-tap execution anytime
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -15,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: setup-python@v5
@@ -25,7 +29,7 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run Sourcing & Alert Engine
+      - name: Run Sourcing Worker
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
@@ -34,9 +38,9 @@ jobs:
         run: |
           python worker.py
 
-      - name: Commit Fresh Feed to Dashboard
+      - name: Commit Fresh Feed
         run: |
-          git config --local user.email "worker@dealradar.internal"
-          git config --local user.name "Sourcing Engine Bot"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add feed_data.json seen_lots.json registered_dealers.json || true
-          git diff-index --quiet HEAD || (git commit -m "Auto-update live feed [skip ci]" && git push)
+          git diff --staged --quiet || (git commit -m "Auto-update live feed [skip ci]" && git push)
