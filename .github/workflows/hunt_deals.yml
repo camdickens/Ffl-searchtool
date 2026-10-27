@@ -1,46 +1,42 @@
-name: 24/7 Autonomous Gun Sourcing Engine
+name: Deal Radar Worker
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: "*/30 * * * *"
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: write
 
 jobs:
-  run-sourcing-worker:
+  scrape-and-alert:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install Dependencies
+      - name: Install requirements
         run: |
-          pip install -r requirements.txt
+          pip install --upgrade pip
+          pip install streamlit pandas requests beautifulsoup4
 
-      - name: Run Sourcing Worker
+      - name: Execute worker script
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        run: |
-          python worker.py
+        run: python worker.py
 
-      - name: Commit Fresh Feed
+      - name: Commit results
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add feed_data.json seen_lots.json registered_dealers.json || true
-          git diff --staged --quiet || (git commit -m "Auto-update live feed [skip ci]" && git push)
+          git commit -m "Auto-update feed [skip ci]" || exit 0
+          git push
