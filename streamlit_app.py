@@ -300,4 +300,4 @@ def analyze_lot(raw):
     fed_profit = round(fed_est - landed, 2)
     ma_profit = round(ma_est - landed, 2)
     fed_margin = round((fed_profit / fed_est) * 100, 1) if fed_est > 0 else 0.0
-    ma_margin = round((ma_profit / ma_est)
+    ma_margin = round((ma_profit / ma_est))
