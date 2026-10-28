@@ -13,7 +13,7 @@ st.set_page_config(
 
 FEED_FILE = "feed_data.json"
 CRON_TOKEN = "DEALER2026"
-ACCESS_PASSCODE = "dealer2026"  # Enter this code to access
+ACCESS_PASSCODE = "dealer2026"
 
 ALL_PLATFORMS = [
     "GunBroker",
@@ -75,7 +75,7 @@ def get_feed():
     }
 
 # ---------------------------------------------------------
-# 3. CLEAN ACCESS GATE (NO PHISHING SIGNATURES)
+# 3. ACCESS GATE
 # ---------------------------------------------------------
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -99,7 +99,7 @@ if not st.session_state["authenticated"]:
 # ---------------------------------------------------------
 with st.sidebar:
     st.title("🎯 FFL Radar")
-    st.success("🟢 VIP Access Active")
+    st.success("🟢 Full Catalog Unlocked")
     st.caption("Operator: `camerondickens9000@gmail.com`")
 
     if st.button("🚪 Lock Terminal", use_container_width=True, key="btn_sign_out"):
@@ -109,7 +109,6 @@ with st.sidebar:
     st.divider()
     st.subheader("📑 Views & Sections")
 
-    # Defaults to ALL INVENTORY FEED so nothing is hidden on load
     active_view = st.radio(
         "Select Section",
         [
@@ -132,7 +131,6 @@ with st.sidebar:
     )
     is_ma = (mode == "Massachusetts Compliant")
 
-    # All platforms selected by default
     selected_sources = st.multiselect(
         "Source Platforms",
         ALL_PLATFORMS,
@@ -140,13 +138,13 @@ with st.sidebar:
         key="multiselect_sources"
     )
 
-    # Thresholds start wide to display all items
-    min_profit = st.slider("Min Net Spread ($)", 0, 600, 25, 25, key="slider_min_profit")
-    min_margin = st.slider("Min Margin (%)", 0, 60, 5, 5, key="slider_min_margin")
-    max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=3500, step=100, key="num_max_cost")
+    st.caption("Profitability thresholds (default wide open):")
+    # Minimum profit and margin sliders with zero default restriction
+    min_profit = st.slider("Min Net Spread ($)", -300, 600, -300, 25, key="slider_min_profit")
+    min_margin = st.slider("Min Margin (%)", -100, 60, -100, 5, key="slider_min_margin")
+    max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=5000, step=250, key="num_max_cost")
 
-    # Defaults to False so PASS items are visible
-    action_only = st.checkbox("Show 'BID' Only (High-Spread Targets)", value=False, key="chk_action_only")
+    action_only = st.checkbox("Show 'BID' Targets Only (≥ Threshold)", value=False, key="chk_action_only")
     pre_ban_only = st.checkbox("Pre-Ban Grandfathered Only", value=False, key="chk_pre_ban") if is_ma else False
     search_query = st.text_input("🔍 Search Keyword (Make, Model, Title)", "", key="txt_search_query").strip().lower()
 
@@ -156,9 +154,9 @@ h1.title(f"{active_view} — {mode}")
 
 feed = get_feed()
 all_lots = feed.get("lots", [])
-st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}**")
+st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}** • Multi-Source Comps (GB + Guns.com + GA)")
 
-# Prepare display fields
+# Calculate display fields with Multi-Source breakdown
 for l in all_lots:
     l["disp_retail"] = float(l.get("ma_retail", 0.0) if is_ma else l.get("federal_retail", 0.0))
     l["disp_profit"] = float(l.get("ma_profit", 0.0) if is_ma else l.get("federal_profit", 0.0))
@@ -173,6 +171,9 @@ def render_feed_table(items, empty_msg):
     if items:
         rows = []
         for lot in items:
+            spread_val = lot.get("disp_profit", 0.0)
+            sign_str = "+" if spread_val >= 0 else ""
+            v_sources = lot.get("valuation_sources", {})
             rows.append({
                 "Signal": "🟢 BID" if lot.get("disp_act") else "⚪ PASS",
                 "Source": lot.get("source_site", "Direct"),
@@ -180,10 +181,11 @@ def render_feed_table(items, empty_msg):
                 "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
                 "Current Ask / Bid": f"${float(lot.get('current_bid', 0)):.2f}",
                 "Total Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
-                "Target Value": f"${lot.get('disp_retail', 0):.2f}",
-                "Net Spread": f"+${lot.get('disp_profit', 0):.2f}",
+                "Triangulated Value": f"${lot.get('disp_retail', 0):.2f}",
+                "Net Spread": f"{sign_str}${spread_val:.2f}",
                 "Margin": f"{lot.get('disp_margin', 0):.1f}%",
-                "Recommended Max Bid": f"${float(lot.get('max_bid', 0)):.2f}",
+                "Comps (GB / GC / GA)": f"${v_sources.get('gunbroker_past_sold', 0):.0f} / ${v_sources.get('guns_com_used_retail', 0):.0f} / ${v_sources.get('market_comp', 0):.0f}",
+                "Max Recommended Bid": f"${float(lot.get('max_bid', 0)):.2f}",
                 "Badge": lot.get("compliance_badge", "Title 1"),
                 "Link": lot.get("listing_url", "#")
             })
@@ -202,7 +204,7 @@ def render_feed_table(items, empty_msg):
     else:
         st.warning(empty_msg)
 
-# Filter processing
+# Filter processing (does not drop lots if sliders are wide open)
 filtered_lots = []
 for l in all_lots:
     if selected_sources and l.get("source_site") not in selected_sources:
@@ -229,21 +231,21 @@ for l in all_lots:
 if active_view == "📋 All Inventory Feed":
     render_feed_table(
         filtered_lots,
-        "No listings match the current filters. Check your minimum spread and search parameters."
+        "No listings match the current filters."
     )
 
 elif active_view == "🔨 Live Auctions":
     auction_items = [l for l in filtered_lots if l.get("is_auction")]
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Live Auction Items", f"{len(auction_items)} Lots")
+    m1.metric("Live Auction Lots", f"{len(auction_items)} Items")
     avg_spread = (
         sum(l["disp_profit"] for l in auction_items) / len(auction_items)
         if auction_items else 0.0
     )
-    m2.metric("Average Auction Spread", f"+${avg_spread:.2f}")
+    m2.metric("Average Auction Spread", f"${avg_spread:.2f}")
     top_margin = max([l["disp_margin"] for l in auction_items], default=0.0)
-    m3.metric("Top Margin", f"{top_margin:.1f}%")
+    m3.metric("Top Auction Margin", f"{top_margin:.1f}%")
 
     render_feed_table(
         auction_items,
@@ -253,15 +255,16 @@ elif active_view == "🔨 Live Auctions":
 elif active_view == "🔔 Push Alerts":
     st.subheader("🔔 Instant Arbitrage Alerts")
     st.write("Alert Destination: `camerondickens9000@gmail.com`")
-    st.number_input("Target Profit Spread Threshold ($)", value=150.0, step=25.0)
+    st.number_input("Target Profit Spread Threshold ($)", value=100.0, step=25.0)
     if st.button("Save Alert Threshold", use_container_width=True):
         st.success("Alert preferences updated.")
 
 elif active_view == "⚙️ System Status":
     st.subheader("System Infrastructure")
     st.write(f"**Connected Sources:** {len(ALL_PLATFORMS)} Platforms")
-    st.write(f"**Total Catalog:** {len(all_lots)} Active Items")
-    st.write(f"**Feed Cache:** `feed_data.json` ({'Healthy' if len(all_lots) > 0 else 'Needs Sync'})")
+    st.write(f"**Total Ingested Lots:** {len(all_lots)} Items")
+    st.write(f"**Valuation Engine:** 3-Way Triangulation (GunBroker Historical + Guns.com + GunsAmerica)")
+    st.write(f"**Feed Status:** `feed_data.json` ({'Healthy' if len(all_lots) > 0 else 'Sync Required'})")
     if st.button("🔄 Force Immediate Re-Sync", use_container_width=True):
         try:
             import worker
