@@ -131,7 +131,7 @@ if "session_id" in params:
             pass
 
 # ---------------------------------------------------------
-# 4. FEED LOADER (WITH RUNTIME AUTO-GENERATION FALLBACK)
+# 4. FEED LOADER
 # ---------------------------------------------------------
 def get_feed():
     if not os.path.exists(FEED_FILE):
@@ -163,7 +163,7 @@ if "user" not in st.session_state:
 
 if st.session_state["user"] is None:
     st.title("🎯 FFL Deal Radar — Dealer Portal")
-    st.write("Sign in or create an account to view autonomous sourcing feeds.")
+    st.write("Sign in or create an account to access live sourcing arbitrage feeds.")
     
     t_login, t_signup = st.tabs(["🔐 Sign In", "📝 Create Dealer Account"])
     with t_login:
@@ -200,12 +200,11 @@ if st.session_state["user"] is None:
 try:
     current_user = st.session_state.get("user") or {}
     user_email = current_user.get("email", "").lower()
-    
-    # VIP / Bypass verification
     is_pro = (current_user.get("plan") == "pro") or (user_email in [a.lower() for a in ADMIN_BYPASS_EMAILS])
     store_title = current_user.get("store_name", "Dealer")
     stripe_url = f"{STRIPE_BASE_URL}?prefilled_email={user_email}"
 
+    # SIDEBAR CONTROLS & NAVIGATION TABS ON THE LEFT
     with st.sidebar:
         st.title("🎯 FFL Radar")
         st.write(f"Store: **{store_title}**")
@@ -221,35 +220,54 @@ try:
                 type="primary",
                 use_container_width=True
             )
+            
         if st.button("🚪 Sign Out", use_container_width=True):
             st.session_state["user"] = None
             st.rerun()
 
         st.divider()
-        st.subheader("⚙️ Filter Controls")
+        st.subheader("📑 Views & Sections")
+        
+        # Left-side Tab Selection
+        active_view = st.radio(
+            "Select Section",
+            [
+                "🔨 Live Auctions",
+                "📋 All Inventory Feed",
+                "🔔 Push Alerts",
+                "⚙️ Account Profile"
+            ],
+            index=0
+        )
+
+        st.divider()
+        st.subheader("⚙️ Sourcing Filters")
         
         mode = st.radio(
             "Legal Framework",
             ["Massachusetts Compliant", "Federal Standard"]
         )
         is_ma = (mode == "Massachusetts Compliant")
-        
+
+        # Source sites multi-select
+        default_sources = ["GunBroker", "HiBid"] if active_view == "🔨 Live Auctions" else ["GunBroker", "Armslist", "HiBid"]
         selected_sources = st.multiselect(
-            "Source Sites",
-            ["GunBroker", "Armslist", "HiBid"],
-            default=["GunBroker", "Armslist", "HiBid"]
+            "Source Platforms",
+            ["GunBroker", "HiBid", "Armslist"],
+            default=default_sources
         )
-        
+
         min_profit = st.slider("Min Net Spread ($)", 25, 600, 100, 25)
         min_margin = st.slider("Min Margin (%)", 5, 60, 15, 5)
         max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=2500, step=100)
-        
+
         action_only = st.checkbox("Show 'BID' Only (Spread ≥ Target)", value=True)
         pre_ban_only = st.checkbox("Pre-Ban Grandfathered Only", value=False) if is_ma else False
         search_query = st.text_input("🔍 Search Keyword (Make, Model, Title)", "").strip().lower()
 
+    # TOP HEADER
     h1, h2 = st.columns([3, 1])
-    h1.title(f"FFL Sourcing Radar — {mode}")
+    h1.title(f"{active_view} — {mode}")
     if not is_pro:
         h2.link_button(
             "⚡ Upgrade Pro ($199/mo)",
@@ -262,15 +280,60 @@ try:
     all_lots = feed.get("lots", [])
     st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}**")
 
-    # Safe computation of display values
+    # Safe computation of display fields
     for l in all_lots:
         l["disp_retail"] = float(l.get("ma_retail", 0.0) if is_ma else l.get("federal_retail", 0.0))
         l["disp_profit"] = float(l.get("ma_profit", 0.0) if is_ma else l.get("federal_profit", 0.0))
         l["disp_margin"] = float(l.get("ma_margin", 0.0) if is_ma else l.get("federal_margin", 0.0))
         l["disp_act"] = bool(l.get("actionable_ma", False) if is_ma else l.get("actionable_federal", False))
+        
+        # Determine auction format vs fixed price
+        is_auction_lot = l.get("source_site") in ["GunBroker", "HiBid"] or "bid" in l.get("title", "").lower()
+        l["is_auction"] = is_auction_lot
 
-    # Apply multi-variable filters
-    displayed = []
+    # Helper function to render table
+    def render_feed_table(items, empty_msg):
+        if not is_pro:
+            st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all 20+ arbitrage spreads.")
+        
+        st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total inventory.")
+        
+        if items:
+            rows = []
+            for idx, lot in enumerate(items):
+                open_row = is_pro or (idx < 2)
+                direct_link = lot.get("listing_url", "")
+                rows.append({
+                    "Signal": "🟢 BID" if lot.get("disp_act") else "🔴 PASS",
+                    "Source": lot.get("source_site", "Direct"),
+                    "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Classified",
+                    "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
+                    "Current Bid / Ask": f"${float(lot.get('current_bid', 0)):.2f}",
+                    "Total Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
+                    "Target Value": f"${lot.get('disp_retail', 0):.2f}",
+                    "Net Spread": f"+${lot.get('disp_profit', 0):.2f}" if open_row else "🔒 Pro Only",
+                    "Margin": f"{lot.get('disp_margin', 0):.1f}%" if open_row else "🔒 Locked",
+                    "Recommended Max Bid": f"${float(lot.get('max_bid', 0)):.2f}" if open_row else "🔒 Pro Only",
+                    "Badge": lot.get("compliance_badge", "Title 1"),
+                    "Link": direct_link if open_row else stripe_url
+                })
+            
+            st.dataframe(
+                pd.DataFrame(rows),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Link": st.column_config.LinkColumn(
+                        "Direct Listing",
+                        display_text="Open Lot ↗" if open_row else "Unlock 🔒"
+                    )
+                }
+            )
+        else:
+            st.warning(empty_msg)
+
+    # Filtering logic applied across lots
+    filtered_lots = []
     for l in all_lots:
         if selected_sources and l.get("source_site") not in selected_sources:
             continue
@@ -288,54 +351,46 @@ try:
             combined = f"{l.get('make','')} {l.get('model','')} {l.get('title','')} {l.get('compliance_badge','')}".lower()
             if search_query not in combined:
                 continue
-        displayed.append(l)
+        filtered_lots.append(l)
 
-    t_feed, t_alerts, t_account = st.tabs(["📋 Sourcing Feed", "🔔 Alerts", "⚙️ Account"])
-
-    with t_feed:
-        if not is_pro:
-            st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all 20+ arbitrage spreads.")
+    # ---------------------------------------------------------
+    # TAB 1: LIVE AUCTIONS ONLY (ISOLATED VIEW)
+    # ---------------------------------------------------------
+    if active_view == "🔨 Live Auctions":
+        auction_items = [l for l in filtered_lots if l.get("is_auction")]
         
-        st.write(f"Showing **{len(displayed)}** matching lots out of **{len(all_lots)}** total inventory.")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Active Live Auctions", f"{len(auction_items)} Lots")
+        avg_auction_spread = (
+            sum(l["disp_profit"] for l in auction_items) / len(auction_items)
+            if auction_items else 0.0
+        )
+        m2.metric("Average Auction Spread", f"+${avg_auction_spread:.2f}")
+        top_auction_margin = max([l["disp_margin"] for l in auction_items], default=0.0)
+        m3.metric("Top Auction Margin", f"{top_auction_margin:.1f}%")
         
-        if displayed:
-            rows = []
-            for idx, lot in enumerate(displayed):
-                open_row = is_pro or (idx < 2)
-                direct_link = lot.get("listing_url", "")
-                rows.append({
-                    "Signal": "🟢 BID" if lot.get("disp_act") else "🔴 PASS",
-                    "Source": lot.get("source_site", "Direct"),
-                    "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
-                    "Ask": f"${float(lot.get('current_bid', 0)):.2f}",
-                    "Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
-                    "Target": f"${lot.get('disp_retail', 0):.2f}",
-                    "Net Spread": f"+${lot.get('disp_profit', 0):.2f}" if open_row else "🔒 Pro Only",
-                    "Margin": f"{lot.get('disp_margin', 0):.1f}%" if open_row else "🔒 Locked",
-                    "Max Bid": f"${float(lot.get('max_bid', 0)):.2f}" if open_row else "🔒 Pro Only",
-                    "Badge": lot.get("compliance_badge", "Title 1"),
-                    "Link": direct_link if open_row else stripe_url
-                })
-            
-            st.dataframe(
-                pd.DataFrame(rows),
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Link": st.column_config.LinkColumn(
-                        "Direct Listing",
-                        display_text="Open Lot ↗" if open_row else "Unlock 🔒"
-                    )
-                }
-            )
-        else:
-            st.warning("No lots currently match the selected filter criteria. Try lowering the minimum spread or clearing the search query.")
+        render_feed_table(
+            auction_items,
+            "No live auctions currently match your filter criteria. Adjust the minimum profit or clear search terms."
+        )
 
-    with t_alerts:
-        st.subheader("🔔 Instant Push Alerts")
+    # ---------------------------------------------------------
+    # TAB 2: ALL INVENTORY FEED (COMBINED VIEW)
+    # ---------------------------------------------------------
+    elif active_view == "📋 All Inventory Feed":
+        render_feed_table(
+            filtered_lots,
+            "No lots match the chosen criteria across auctions and classifieds. Try broadening your filter range."
+        )
+
+    # ---------------------------------------------------------
+    # TAB 3: PUSH ALERTS
+    # ---------------------------------------------------------
+    elif active_view == "🔔 Push Alerts":
+        st.subheader("🔔 Autonomous Buy Alerts")
         st.write(f"Alert Dispatch Target: `{user_email}`")
         u_thresh = st.number_input(
-            "Min Profit Spread for Alerts ($)",
+            "Min Profit Spread for Automated Email Dispatch ($)",
             value=float(current_user.get("min_profit", 150.0)),
             step=25.0
         )
@@ -345,18 +400,21 @@ try:
                 users[user_email]["min_profit"] = u_thresh
                 save_all_users(users)
                 st.session_state["user"]["min_profit"] = u_thresh
-                st.success("Alert preferences saved!")
+                st.success("Alert preferences saved successfully!")
 
-    with t_account:
-        st.subheader("Store Profile")
-        st.write(f"**Business:** {store_title}")
-        st.write(f"**Email:** {user_email}")
-        st.write(f"**FFL:** {current_user.get('ffl') or 'Not provided'}")
-        st.write(f"**Tier:** {'🟢 Pro Subscriber (Active)' if is_pro else '🟡 Free Tier'}")
+    # ---------------------------------------------------------
+    # TAB 4: ACCOUNT PROFILE
+    # ---------------------------------------------------------
+    elif active_view == "⚙️ Account Profile":
+        st.subheader("Store Profile & Membership")
+        st.write(f"**Business Store:** {store_title}")
+        st.write(f"**Email Address:** {user_email}")
+        st.write(f"**FFL License:** {current_user.get('ffl') or 'Not provided'}")
+        st.write(f"**Subscription Plan:** {'🟢 Pro Subscriber (Active VIP)' if is_pro else '🟡 Free Tier'}")
         st.divider()
         if not is_pro:
             st.markdown("### Activate Pro Membership ($199/month)")
-            st.write("Instant access to all masked arbitrage listings and 24/7 buy alerts.")
+            st.write("Instant access to all masked arbitrage listings, custom alert thresholds, and direct auction lot URLs.")
             st.link_button(
                 "👉 Complete Checkout via Stripe",
                 stripe_url,
@@ -364,7 +422,7 @@ try:
                 use_container_width=True
             )
         else:
-            st.success("Pro subscription active. All lots and links are unlocked.")
+            st.success("Your Pro subscription is fully active. All live feeds, links, and calculation metrics are unlocked.")
 
 except Exception as e:
     st.error(f"Dashboard render issue: {str(e)}")
