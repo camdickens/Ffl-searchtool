@@ -152,9 +152,8 @@ h1.title(f"{active_view} — {mode}")
 
 feed = get_feed()
 all_lots = feed.get("lots", [])
-st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}** • Multi-Source Comps (GB + Guns.com + GA)")
+st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}** • Triangulated Comps (GunBroker + Guns.com + GunsAmerica)")
 
-# Calculate display fields
 for l in all_lots:
     l["disp_retail"] = float(l.get("ma_retail", 0.0) if is_ma else l.get("federal_retail", 0.0))
     l["disp_profit"] = float(l.get("ma_profit", 0.0) if is_ma else l.get("federal_profit", 0.0))
@@ -170,7 +169,6 @@ def render_feed_table(items, empty_msg):
         st.warning(empty_msg)
         return
 
-    # Injected CSS for seamless page integration with zero inner scrollbars
     table_html = """
     <style>
     .native-feed-table {
