@@ -1,15 +1,34 @@
-This error happens when an orphaned `try:` line was left behind above Section 6 on GitHub (or if old code wasn't completely selected and deleted before pasting, leaving mismatched indentation). When Python sees an open `try:`, it halts at the very first unindented line and throws `SyntaxError: expected 'except' or 'finally' block`.
+The line got cut off during the paste (`l_` instead of `l_pw)`).
 
-To fix this once and for all:
+You can fix it in seconds without re-pasting the whole file, or re-copy the clean full file below.
 
-1. Open `streamlit_app.py` in your GitHub repository and click the **pencil icon (Edit)**.
-2. Press **`Cmd + A`** (Mac) or **`Ctrl + A`** (Windows) to select everything, then press **Delete / Backspace** so the editor is completely empty (line 1 is blank).
-3. Paste the clean, verified code below. Every `try` block in this script is strictly self-contained with its own `except`, and Section 6 contains zero outer try wrappers.
+---
+
+### Quick Fix (Edit Single Line)
+
+1. In GitHub, open `streamlit_app.py` in edit mode.
+2. Go to **line 209** (inside `with t_login:`).
+3. Change:
+```python
+user = authenticate_user(l_email, l_
+
+```
+
+
+to:
+```python
+user = authenticate_user(l_email, l_pw)
+
+```
+
+
 4. Click **Commit changes**.
 
 ---
 
-### Clean `streamlit_app.py`
+### Full Clean File (`streamlit_app.py`)
+
+If you prefer to replace the entire file, make sure to select all existing text and delete it first before pasting:
 
 ```python
 import os
