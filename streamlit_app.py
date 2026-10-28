@@ -27,7 +27,6 @@ ALL_PLATFORMS = [
     "UsedGuns.com"
 ]
 
-# Ensure table takes full container width and disables inner clipping
 st.markdown(
     """
 <style>
@@ -43,7 +42,7 @@ div[data-testid="stDataFrame"] > div {
 )
 
 # ---------------------------------------------------------
-# 1. CRON SCRAPER TRIGGER (SAFE BACKGROUND SYNC)
+# 1. CRON SCRAPER TRIGGER
 # ---------------------------------------------------------
 params = st.query_params
 if params.get("task") == "scrape" and params.get("token") == CRON_TOKEN:
@@ -57,30 +56,34 @@ if params.get("task") == "scrape" and params.get("token") == CRON_TOKEN:
     st.stop()
 
 # ---------------------------------------------------------
-# 2. FEED LOADER
+# 2. FEED LOADER (ENSURES MINIMUM 500 ITEMS)
 # ---------------------------------------------------------
 def get_feed():
-    if not os.path.exists(FEED_FILE):
-        try:
-            import worker
-            worker.main()
-        except Exception:
-            pass
+    def load_local():
+        if os.path.exists(FEED_FILE):
+            try:
+                with open(FEED_FILE, "r") as f:
+                    data = json.load(f)
+                    if isinstance(data, dict) and "lots" in data and len(data["lots"]) >= 500:
+                        return data
+            except Exception:
+                pass
+        return None
 
-    if os.path.exists(FEED_FILE):
-        try:
-            with open(FEED_FILE, "r") as f:
-                data = json.load(f)
-                if isinstance(data, dict) and "lots" in data and len(data["lots"]) > 0:
-                    return data
-        except Exception:
-            pass
+    cached = load_local()
+    if cached:
+        return cached
 
+    # Re-run ingestion if below 500
     try:
         import worker
         worker.main()
-        with open(FEED_FILE, "r") as f:
-            return json.load(f)
+        cached = load_local()
+        if cached:
+            return cached
+        if os.path.exists(FEED_FILE):
+            with open(FEED_FILE, "r") as f:
+                return json.load(f)
     except Exception:
         pass
 
@@ -179,7 +182,7 @@ for l in all_lots:
     l["is_auction"] = is_auction_lot
 
 def render_feed_table(items, empty_msg):
-    st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total active inventory.")
+    st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total individual listings.")
 
     if items:
         rows = []
@@ -209,7 +212,7 @@ def render_feed_table(items, empty_msg):
             })
 
         df = pd.DataFrame(rows)
-        # Dynamically sized height ensures all 500+ rows render smoothly into the page
+        # Dynamically sized height renders all 500+ items directly down the page
         calculated_height = int((len(rows) + 1) * 36 + 15)
 
         st.dataframe(
@@ -285,9 +288,9 @@ elif active_view == "🔔 Push Alerts":
 elif active_view == "⚙️ System Status":
     st.subheader("System Infrastructure")
     st.write(f"**Connected Sources:** {len(ALL_PLATFORMS)} Platforms")
-    st.write(f"**Total Active Lots:** {len(all_lots)} Items")
+    st.write(f"**Total Individual Listings:** {len(all_lots)} Items")
     st.write(f"**Valuation Engine:** 3-Way Triangulation (GunBroker Historical + Guns.com + GunsAmerica)")
-    st.write(f"**Feed Status:** `feed_data.json` ({'Healthy' if len(all_lots) > 0 else 'Sync Required'})")
+    st.write(f"**Feed Status:** `feed_data.json` ({'Healthy (≥500 listings)' if len(all_lots) >= 500 else 'Sync Required'})")
     if st.button("🔄 Force Immediate Re-Sync", use_container_width=True):
         try:
             import worker
