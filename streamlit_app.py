@@ -103,7 +103,6 @@ def authenticate_user(email, password):
     users = get_all_users()
     e = email.strip().lower()
     user = users.get(e)
-    # Admin bypass accounts allow login directly or via password match
     if user:
         if (e in [a.lower() for a in ADMIN_BYPASS_EMAILS]) or (user.get("password_hash") == hash_pw(password)):
             user_copy = dict(user)
@@ -184,7 +183,6 @@ def get_feed():
 if "user" not in st.session_state:
     st.session_state["user"] = None
 
-# Check browser URL for existing persistent auth token
 active_auth_token = st.query_params.get("auth")
 if st.session_state["user"] is None and active_auth_token:
     all_known_users = get_all_users()
@@ -197,7 +195,6 @@ if st.session_state["user"] is None and active_auth_token:
             st.session_state["user"] = restored
             break
 
-# If still not logged in, show login/signup portal
 if st.session_state["user"] is None:
     st.title("🎯 FFL Deal Radar — Dealer Portal")
     st.write("Sign in or create an account to access live sourcing arbitrage feeds.")
@@ -244,15 +241,10 @@ try:
     store_title = current_user.get("store_name", "Dealer")
     stripe_url = f"{STRIPE_BASE_URL}?prefilled_email={user_email}"
 
-    # Ensure token stays attached to URL for persistence
     if st.query_params.get("auth") != make_session_token(user_email):
         st.query_params["auth"] = make_session_token(user_email)
 
-    # SIDEBAR CONTROLS & NAVIGATION TABS ON THE LEFT
     with st.sidebar:
         st.title("🎯 FFL Radar")
         st.write(f"Store: **{store_title}**")
         st.caption(f"Account: `{user_email}`")
-        
-        if is_pro:
-            st.success("🟢 Pro Dealer Unlocked (VIP Access)")
