@@ -19,6 +19,18 @@ STRIPE_BASE_URL = "https://buy.stripe.com/test_replace"
 CRON_TOKEN = "DEALER2026"
 SESSION_SALT = "FFL_RADAR_AUTH_SECRET_2026"
 
+ALL_PLATFORMS = [
+    "GunBroker",
+    "HiBid",
+    "Armslist",
+    "Guns.com",
+    "GunsAmerica",
+    "Buds Gun Shop",
+    "Sportsman's Outdoor Superstore",
+    "Tacswap",
+    "UsedGuns.com"
+]
+
 # ---------------------------------------------------------
 # VIP / PRO BYPASS CONFIGURATION
 # ---------------------------------------------------------
@@ -290,11 +302,11 @@ with st.sidebar:
     )
     is_ma = (mode == "Massachusetts Compliant")
 
-    default_sources = ["GunBroker", "HiBid"] if active_view == "🔨 Live Auctions" else ["GunBroker", "Armslist", "HiBid"]
+    default_selected = ["GunBroker", "HiBid"] if active_view == "🔨 Live Auctions" else ALL_PLATFORMS
     selected_sources = st.multiselect(
         "Source Platforms",
-        ["GunBroker", "HiBid", "Armslist"],
-        default=default_sources,
+        ALL_PLATFORMS,
+        default=default_selected,
         key="multiselect_sources"
     )
 
@@ -333,7 +345,7 @@ for l in all_lots:
 
 def render_feed_table(items, empty_msg):
     if not is_pro:
-        st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all 20+ arbitrage spreads.")
+        st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all arbitrage spreads.")
     
     st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total inventory.")
     
@@ -345,9 +357,9 @@ def render_feed_table(items, empty_msg):
             rows.append({
                 "Signal": "🟢 BID" if lot.get("disp_act") else "🔴 PASS",
                 "Source": lot.get("source_site", "Direct"),
-                "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Classified",
+                "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Buy-It-Now",
                 "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
-                "Current Bid / Ask": f"${float(lot.get('current_bid', 0)):.2f}",
+                "Current Ask / Bid": f"${float(lot.get('current_bid', 0)):.2f}",
                 "Total Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
                 "Target Value": f"${lot.get('disp_retail', 0):.2f}",
                 "Net Spread": f"+${lot.get('disp_profit', 0):.2f}" if open_row else "🔒 Pro Only",
