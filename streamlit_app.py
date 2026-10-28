@@ -285,7 +285,7 @@ elif active_view == "🔔 Push Alerts":
 elif active_view == "⚙️ System Status":
     st.subheader("System Infrastructure")
     st.write(f"**Connected Sources:** {len(ALL_PLATFORMS)} Platforms")
-    st.write(f"**Total Ingested Lots:** {len(all_lots)} Items")
+    st.write(f"**Total Active Lots:** {len(all_lots)} Items")
     st.write(f"**Valuation Engine:** 3-Way Triangulation (GunBroker Historical + Guns.com + GunsAmerica)")
     st.write(f"**Feed Status:** `feed_data.json` ({'Healthy' if len(all_lots) > 0 else 'Sync Required'})")
     if st.button("🔄 Force Immediate Re-Sync", use_container_width=True):
