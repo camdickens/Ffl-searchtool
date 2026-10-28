@@ -1,36 +1,3 @@
-The line got cut off during the paste (`l_` instead of `l_pw)`).
-
-You can fix it in seconds without re-pasting the whole file, or re-copy the clean full file below.
-
----
-
-### Quick Fix (Edit Single Line)
-
-1. In GitHub, open `streamlit_app.py` in edit mode.
-2. Go to **line 209** (inside `with t_login:`).
-3. Change:
-```python
-user = authenticate_user(l_email, l_
-
-```
-
-
-to:
-```python
-user = authenticate_user(l_email, l_pw)
-
-```
-
-
-4. Click **Commit changes**.
-
----
-
-### Full Clean File (`streamlit_app.py`)
-
-If you prefer to replace the entire file, make sure to select all existing text and delete it first before pasting:
-
-```python
 import os
 import json
 import hashlib
@@ -489,5 +456,3 @@ elif active_view == "⚙️ Account Profile":
         )
     else:
         st.success("Your Pro subscription is fully active. All live feeds, links, and calculation metrics are unlocked.")
-
-```
