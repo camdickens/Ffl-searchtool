@@ -1,11 +1,8 @@
 import os
 import json
 import hashlib
-import smtplib
 import traceback
 from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import requests
 import pandas as pd
 import streamlit as st
@@ -22,13 +19,20 @@ STRIPE_BASE_URL = "https://buy.stripe.com/test_replace"
 CRON_TOKEN = "DEALER2026"
 
 # ---------------------------------------------------------
+# VIP / PRO BYPASS CONFIGURATION
+# ---------------------------------------------------------
+ADMIN_BYPASS_EMAILS = [
+    "camerondickens9000@gmail.com",
+    "admin@ffldealradar.com",
+    "owner@dealfinder.com",
+    "test@test.com"
+]
+
+# ---------------------------------------------------------
 # 1. AUTONOMOUS CRON SCRAPER TRIGGER
 # ---------------------------------------------------------
 params = st.query_params
-if (
-    params.get("task") == "scrape"
-    and params.get("token") == CRON_TOKEN
-):
+if params.get("task") == "scrape" and params.get("token") == CRON_TOKEN:
     try:
         import worker
         worker.main()
@@ -62,11 +66,12 @@ def register_user(email, password, store, ffl):
     e = email.strip().lower()
     if e in users:
         return False, "Account already exists."
+    is_vip = e in [a.lower() for a in ADMIN_BYPASS_EMAILS]
     users[e] = {
         "store_name": store.strip(),
         "ffl": ffl.strip(),
         "password_hash": hash_pw(password),
-        "plan": "free",
+        "plan": "pro" if is_vip else "free",
         "created_at": datetime.now().strftime("%Y-%m-%d"),
         "min_profit": 150.0,
         "email_alerts": True
@@ -81,6 +86,8 @@ def authenticate_user(email, password):
     if user and user.get("password_hash") == hash_pw(password):
         user_copy = dict(user)
         user_copy["email"] = e
+        if e in [a.lower() for a in ADMIN_BYPASS_EMAILS]:
+            user_copy["plan"] = "pro"
         return user_copy
     return None
 
@@ -124,7 +131,7 @@ if "session_id" in params:
             pass
 
 # ---------------------------------------------------------
-# 4. FEED LOADER (WITH AUTO-GENERATION FALLBACK)
+# 4. FEED LOADER (WITH RUNTIME AUTO-GENERATION FALLBACK)
 # ---------------------------------------------------------
 def get_feed():
     if not os.path.exists(FEED_FILE):
@@ -188,12 +195,14 @@ if st.session_state["user"] is None:
     st.stop()
 
 # ---------------------------------------------------------
-# 6. AUTHENTICATED DASHBOARD (ROBUST RENDERING)
+# 6. AUTHENTICATED DASHBOARD
 # ---------------------------------------------------------
 try:
     current_user = st.session_state.get("user") or {}
-    is_pro = current_user.get("plan") == "pro"
-    user_email = current_user.get("email", "dealer@example.com")
+    user_email = current_user.get("email", "").lower()
+    
+    # VIP / Bypass verification
+    is_pro = (current_user.get("plan") == "pro") or (user_email in [a.lower() for a in ADMIN_BYPASS_EMAILS])
     store_title = current_user.get("store_name", "Dealer")
     stripe_url = f"{STRIPE_BASE_URL}?prefilled_email={user_email}"
 
@@ -203,7 +212,7 @@ try:
         st.caption(f"Account: `{user_email}`")
         
         if is_pro:
-            st.success("🟢 Pro Dealer Unlocked")
+            st.success("🟢 Pro Dealer Unlocked (VIP Access)")
         else:
             st.warning("🟡 Free Preview Active (Top 2 Free)")
             st.link_button(
@@ -217,14 +226,27 @@ try:
             st.rerun()
 
         st.divider()
+        st.subheader("⚙️ Filter Controls")
+        
         mode = st.radio(
-            "Framework",
+            "Legal Framework",
             ["Massachusetts Compliant", "Federal Standard"]
         )
         is_ma = (mode == "Massachusetts Compliant")
-        min_profit = st.slider("Min Profit ($)", 50, 500, 150, 25)
-        action_only = st.checkbox("Show 'BID' Only", value=True)
-        pre_ban_only = st.checkbox("Pre-Ban Only", value=False) if is_ma else False
+        
+        selected_sources = st.multiselect(
+            "Source Sites",
+            ["GunBroker", "Armslist", "HiBid"],
+            default=["GunBroker", "Armslist", "HiBid"]
+        )
+        
+        min_profit = st.slider("Min Net Spread ($)", 25, 600, 100, 25)
+        min_margin = st.slider("Min Margin (%)", 5, 60, 15, 5)
+        max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=2500, step=100)
+        
+        action_only = st.checkbox("Show 'BID' Only (Spread ≥ Target)", value=True)
+        pre_ban_only = st.checkbox("Pre-Ban Grandfathered Only", value=False) if is_ma else False
+        search_query = st.text_input("🔍 Search Keyword (Make, Model, Title)", "").strip().lower()
 
     h1, h2 = st.columns([3, 1])
     h1.title(f"FFL Sourcing Radar — {mode}")
@@ -240,24 +262,41 @@ try:
     all_lots = feed.get("lots", [])
     st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}**")
 
-    # Safe computation of display fields
+    # Safe computation of display values
     for l in all_lots:
         l["disp_retail"] = float(l.get("ma_retail", 0.0) if is_ma else l.get("federal_retail", 0.0))
         l["disp_profit"] = float(l.get("ma_profit", 0.0) if is_ma else l.get("federal_profit", 0.0))
         l["disp_margin"] = float(l.get("ma_margin", 0.0) if is_ma else l.get("federal_margin", 0.0))
         l["disp_act"] = bool(l.get("actionable_ma", False) if is_ma else l.get("actionable_federal", False))
 
-    displayed = all_lots
-    if action_only:
-        displayed = [l for l in displayed if l.get("disp_act", False)]
-    if is_ma and pre_ban_only:
-        displayed = [l for l in displayed if l.get("is_pre_ban", False)]
+    # Apply multi-variable filters
+    displayed = []
+    for l in all_lots:
+        if selected_sources and l.get("source_site") not in selected_sources:
+            continue
+        if l["disp_profit"] < min_profit:
+            continue
+        if l["disp_margin"] < min_margin:
+            continue
+        if float(l.get("current_bid", 0)) > max_cost:
+            continue
+        if action_only and not l["disp_act"]:
+            continue
+        if is_ma and pre_ban_only and not l.get("is_pre_ban", False):
+            continue
+        if search_query:
+            combined = f"{l.get('make','')} {l.get('model','')} {l.get('title','')} {l.get('compliance_badge','')}".lower()
+            if search_query not in combined:
+                continue
+        displayed.append(l)
 
     t_feed, t_alerts, t_account = st.tabs(["📋 Sourcing Feed", "🔔 Alerts", "⚙️ Account"])
 
     with t_feed:
         if not is_pro:
             st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all 20+ arbitrage spreads.")
+        
+        st.write(f"Showing **{len(displayed)}** matching lots out of **{len(all_lots)}** total inventory.")
         
         if displayed:
             rows = []
@@ -285,18 +324,18 @@ try:
                 column_config={
                     "Link": st.column_config.LinkColumn(
                         "Direct Listing",
-                        display_text="Open Lot ↗" if is_pro else "Unlock 🔒"
+                        display_text="Open Lot ↗" if open_row else "Unlock 🔒"
                     )
                 }
             )
         else:
-            st.warning("No lots currently match the chosen filter. Uncheck 'Show BID Only' to inspect all inventory.")
+            st.warning("No lots currently match the selected filter criteria. Try lowering the minimum spread or clearing the search query.")
 
     with t_alerts:
         st.subheader("🔔 Instant Push Alerts")
-        st.write(f"Recipient: `{user_email}`")
+        st.write(f"Alert Dispatch Target: `{user_email}`")
         u_thresh = st.number_input(
-            "Min Profit Spread ($)",
+            "Min Profit Spread for Alerts ($)",
             value=float(current_user.get("min_profit", 150.0)),
             step=25.0
         )
@@ -313,7 +352,7 @@ try:
         st.write(f"**Business:** {store_title}")
         st.write(f"**Email:** {user_email}")
         st.write(f"**FFL:** {current_user.get('ffl') or 'Not provided'}")
-        st.write(f"**Tier:** {'🟢 Pro Subscriber' if is_pro else '🟡 Free Tier'}")
+        st.write(f"**Tier:** {'🟢 Pro Subscriber (Active)' if is_pro else '🟡 Free Tier'}")
         st.divider()
         if not is_pro:
             st.markdown("### Activate Pro Membership ($199/month)")
@@ -325,7 +364,7 @@ try:
                 use_container_width=True
             )
         else:
-            st.success("Your Pro subscription is fully active.")
+            st.success("Pro subscription active. All lots and links are unlocked.")
 
 except Exception as e:
     st.error(f"Dashboard render issue: {str(e)}")
