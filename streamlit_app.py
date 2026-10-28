@@ -2,6 +2,7 @@ import os
 import json
 import traceback
 from datetime import datetime
+import pandas as pd
 import streamlit as st
 
 st.set_page_config(
@@ -25,6 +26,21 @@ ALL_PLATFORMS = [
     "Tacswap",
     "UsedGuns.com"
 ]
+
+# CSS to ensure table expands to full container width without scroll clipping
+st.markdown(
+    """
+<style>
+div[data-testid="stDataFrame"] {
+    width: 100% !important;
+}
+div[data-testid="stDataFrame"] > div {
+    max-height: none !important;
+}
+</style>
+""",
+    unsafe_allow_html=True
+)
 
 # ---------------------------------------------------------
 # 1. CRON SCRAPER TRIGGER (SAFE BACKGROUND SYNC)
@@ -165,127 +181,51 @@ for l in all_lots:
 def render_feed_table(items, empty_msg):
     st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total inventory.")
 
-    if not items:
-        st.warning(empty_msg)
-        return
+    if items:
+        rows = []
+        for lot in items:
+            spread_val = lot.get("disp_profit", 0.0)
+            sign_str = "+" if spread_val >= 0 else ""
+            v_sources = lot.get("valuation_sources", {})
+            comps_str = (
+                f"${v_sources.get('gunbroker_past_sold', 0):.0f} / "
+                f"${v_sources.get('guns_com_used_retail', 0):.0f} / "
+                f"${v_sources.get('market_comp', 0):.0f}"
+            )
+            rows.append({
+                "Signal": "🟢 BID" if lot.get("disp_act") else "⚪ PASS",
+                "Source": lot.get("source_site", "Direct"),
+                "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Buy-It-Now",
+                "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
+                "Current Ask / Bid": f"${float(lot.get('current_bid', 0)):.2f}",
+                "Total Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
+                "Triangulated Value": f"${lot.get('disp_retail', 0):.2f}",
+                "Net Spread": f"{sign_str}${spread_val:.2f}",
+                "Margin": f"{lot.get('disp_margin', 0):.1f}%",
+                "Comps (GB / GC / GA)": comps_str,
+                "Recommended Max Bid": f"${float(lot.get('max_bid', 0)):.2f}",
+                "Badge": lot.get("compliance_badge", "Title 1"),
+                "Link": lot.get("listing_url", "#")
+            })
 
-    table_html = """
-    <style>
-    .native-feed-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 14px;
-        margin-bottom: 30px;
-        font-size: 0.88rem;
-    }
-    .native-feed-table th {
-        text-align: left;
-        padding: 12px 10px;
-        border-bottom: 2px solid rgba(128, 128, 128, 0.35);
-        font-weight: 600;
-        white-space: nowrap;
-        opacity: 0.95;
-    }
-    .native-feed-table td {
-        padding: 12px 10px;
-        border-bottom: 1px solid rgba(128, 128, 128, 0.15);
-        vertical-align: middle;
-    }
-    .native-feed-table tr:hover {
-        background-color: rgba(128, 128, 128, 0.07);
-    }
-    .lot-badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        background-color: rgba(128, 128, 128, 0.2);
-        white-space: nowrap;
-    }
-    .lot-btn {
-        display: inline-block;
-        background-color: #2563eb;
-        color: #ffffff !important;
-        text-decoration: none !important;
-        padding: 6px 12px;
-        border-radius: 5px;
-        font-size: 0.80rem;
-        font-weight: 600;
-        white-space: nowrap;
-        transition: background-color 0.15s ease;
-    }
-    .lot-btn:hover {
-        background-color: #1d4ed8;
-    }
-    .profit-positive {
-        color: #22c55e;
-        font-weight: 600;
-    }
-    .profit-negative {
-        color: #ef4444;
-        font-weight: 600;
-    }
-    </style>
-    <table class="native-feed-table">
-        <thead>
-            <tr>
-                <th>Signal</th>
-                <th>Source</th>
-                <th>Type</th>
-                <th>Model</th>
-                <th>Ask / Bid</th>
-                <th>Total Landed</th>
-                <th>Triangulated Value</th>
-                <th>Net Spread</th>
-                <th>Margin</th>
-                <th>Comps (GB / GC / GA)</th>
-                <th>Max Bid</th>
-                <th>Badge</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-    """
+        df = pd.DataFrame(rows)
+        # Dynamically sized height: header + all rows so internal scrollbar is disabled
+        calculated_height = int((len(rows) + 1) * 36 + 15)
 
-    for lot in items:
-        spread_val = lot.get("disp_profit", 0.0)
-        spread_class = "profit-positive" if spread_val >= 0 else "profit-negative"
-        sign_str = "+" if spread_val >= 0 else ""
-        v_sources = lot.get("valuation_sources", {})
-        signal_icon = "🟢 BID" if lot.get("disp_act") else "⚪ PASS"
-        lot_type = "🔨 Auction" if lot.get("is_auction") else "🏷️ Buy-It-Now"
-
-        comps_str = (
-            f"${v_sources.get('gunbroker_past_sold', 0):.0f} / "
-            f"${v_sources.get('guns_com_used_retail', 0):.0f} / "
-            f"${v_sources.get('market_comp', 0):.0f}"
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            height=calculated_height,
+            column_config={
+                "Link": st.column_config.LinkColumn(
+                    "Direct Listing",
+                    display_text="Open Lot ↗"
+                )
+            }
         )
-
-        table_html += f"""
-            <tr>
-                <td><strong>{signal_icon}</strong></td>
-                <td>{lot.get('source_site', 'Direct')}</td>
-                <td>{lot_type}</td>
-                <td><strong>{lot.get('make', '').title()} {lot.get('model', '').title()}</strong></td>
-                <td>${float(lot.get('current_bid', 0)):.2f}</td>
-                <td>${float(lot.get('total_landed_cost', 0)):.2f}</td>
-                <td><strong>${lot.get('disp_retail', 0):.2f}</strong></td>
-                <td class="{spread_class}">{sign_str}${spread_val:.2f}</td>
-                <td>{lot.get('disp_margin', 0):.1f}%</td>
-                <td><small>{comps_str}</small></td>
-                <td>${float(lot.get('max_bid', 0)):.2f}</td>
-                <td><span class="lot-badge">{lot.get('compliance_badge', 'Title 1')}</span></td>
-                <td><a href="{lot.get('listing_url', '#')}" target="_blank" rel="noopener noreferrer" class="lot-btn">Open Lot ↗</a></td>
-            </tr>
-        """
-
-    table_html += """
-        </tbody>
-    </table>
-    """
-
-    st.markdown(table_html, unsafe_allow_html=True)
+    else:
+        st.warning(empty_msg)
 
 # Filter processing
 filtered_lots = []
