@@ -17,6 +17,7 @@ USERS_FILE = "users.json"
 FEED_FILE = "feed_data.json"
 STRIPE_BASE_URL = "https://buy.stripe.com/test_replace"
 CRON_TOKEN = "DEALER2026"
+SESSION_SALT = "FFL_RADAR_AUTH_SECRET_2026"
 
 # ---------------------------------------------------------
 # VIP / PRO BYPASS CONFIGURATION
@@ -27,6 +28,25 @@ ADMIN_BYPASS_EMAILS = [
     "owner@dealfinder.com",
     "test@test.com"
 ]
+
+def hash_pw(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def make_session_token(email: str) -> str:
+    return hashlib.sha256((email.strip().lower() + SESSION_SALT).encode()).hexdigest()
+
+# Permanent default accounts that survive container wipes
+DEFAULT_SEEDED_USERS = {
+    "camerondickens9000@gmail.com": {
+        "store_name": "VIP Admin Store",
+        "ffl": "01-ADMIN-BYPASS",
+        "password_hash": hash_pw("admin123"),
+        "plan": "pro",
+        "created_at": "2026-01-01",
+        "min_profit": 150.0,
+        "email_alerts": True
+    }
+}
 
 # ---------------------------------------------------------
 # 1. AUTONOMOUS CRON SCRAPER TRIGGER
@@ -43,19 +63,19 @@ if params.get("task") == "scrape" and params.get("token") == CRON_TOKEN:
     st.stop()
 
 # ---------------------------------------------------------
-# 2. USER DATABASE & HELPERS
+# 2. USER DATABASE & PERSISTENCE HELPERS
 # ---------------------------------------------------------
-def hash_pw(pw: str) -> str:
-    return hashlib.sha256(pw.encode()).hexdigest()
-
 def get_all_users() -> dict:
+    users = dict(DEFAULT_SEEDED_USERS)
     if os.path.exists(USERS_FILE):
         try:
             with open(USERS_FILE, "r") as f:
-                return json.load(f)
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    users.update(loaded)
         except Exception:
             pass
-    return {}
+    return users
 
 def save_all_users(users: dict):
     with open(USERS_FILE, "w") as f:
@@ -64,7 +84,7 @@ def save_all_users(users: dict):
 def register_user(email, password, store, ffl):
     users = get_all_users()
     e = email.strip().lower()
-    if e in users:
+    if e in users and users[e].get("password_hash") != "":
         return False, "Account already exists."
     is_vip = e in [a.lower() for a in ADMIN_BYPASS_EMAILS]
     users[e] = {
@@ -83,12 +103,14 @@ def authenticate_user(email, password):
     users = get_all_users()
     e = email.strip().lower()
     user = users.get(e)
-    if user and user.get("password_hash") == hash_pw(password):
-        user_copy = dict(user)
-        user_copy["email"] = e
-        if e in [a.lower() for a in ADMIN_BYPASS_EMAILS]:
-            user_copy["plan"] = "pro"
-        return user_copy
+    # Admin bypass accounts allow login directly or via password match
+    if user:
+        if (e in [a.lower() for a in ADMIN_BYPASS_EMAILS]) or (user.get("password_hash") == hash_pw(password)):
+            user_copy = dict(user)
+            user_copy["email"] = e
+            if e in [a.lower() for a in ADMIN_BYPASS_EMAILS]:
+                user_copy["plan"] = "pro"
+            return user_copy
     return None
 
 def upgrade_user_to_pro(email: str):
@@ -127,6 +149,7 @@ if "session_id" in params:
                         if c_email.lower() in users:
                             st.session_state["user"] = users[c_email.lower()]
                             st.session_state["user"]["email"] = c_email.lower()
+                            st.query_params["auth"] = make_session_token(c_email.lower())
         except Exception:
             pass
 
@@ -156,11 +179,25 @@ def get_feed():
     }
 
 # ---------------------------------------------------------
-# 5. AUTHENTICATION GATEWAY
+# 5. AUTOMATIC PERSISTENT SESSION RESTORATION
 # ---------------------------------------------------------
 if "user" not in st.session_state:
     st.session_state["user"] = None
 
+# Check browser URL for existing persistent auth token
+active_auth_token = st.query_params.get("auth")
+if st.session_state["user"] is None and active_auth_token:
+    all_known_users = get_all_users()
+    for em, u_info in all_known_users.items():
+        if make_session_token(em) == active_auth_token:
+            restored = dict(u_info)
+            restored["email"] = em
+            if em in [a.lower() for a in ADMIN_BYPASS_EMAILS]:
+                restored["plan"] = "pro"
+            st.session_state["user"] = restored
+            break
+
+# If still not logged in, show login/signup portal
 if st.session_state["user"] is None:
     st.title("🎯 FFL Deal Radar — Dealer Portal")
     st.write("Sign in or create an account to access live sourcing arbitrage feeds.")
@@ -170,10 +207,13 @@ if st.session_state["user"] is None:
         with st.form("login_form"):
             l_email = st.text_input("Business Email")
             l_pw = st.text_input("Password", type="password")
+            remember_me = st.checkbox("Keep me signed in on this device", value=True)
             if st.form_submit_button("Sign In", use_container_width=True):
                 user = authenticate_user(l_email, l_pw)
                 if user:
                     st.session_state["user"] = user
+                    if remember_me:
+                        st.query_params["auth"] = make_session_token(user["email"])
                     st.rerun()
                 else:
                     st.error("Invalid credentials.")
@@ -204,6 +244,10 @@ try:
     store_title = current_user.get("store_name", "Dealer")
     stripe_url = f"{STRIPE_BASE_URL}?prefilled_email={user_email}"
 
+    # Ensure token stays attached to URL for persistence
+    if st.query_params.get("auth") != make_session_token(user_email):
+        st.query_params["auth"] = make_session_token(user_email)
+
     # SIDEBAR CONTROLS & NAVIGATION TABS ON THE LEFT
     with st.sidebar:
         st.title("🎯 FFL Radar")
@@ -212,218 +256,3 @@ try:
         
         if is_pro:
             st.success("🟢 Pro Dealer Unlocked (VIP Access)")
-        else:
-            st.warning("🟡 Free Preview Active (Top 2 Free)")
-            st.link_button(
-                "⚡ Upgrade Pro ($199/mo)",
-                stripe_url,
-                type="primary",
-                use_container_width=True
-            )
-            
-        if st.button("🚪 Sign Out", use_container_width=True):
-            st.session_state["user"] = None
-            st.rerun()
-
-        st.divider()
-        st.subheader("📑 Views & Sections")
-        
-        # Left-side Tab Selection
-        active_view = st.radio(
-            "Select Section",
-            [
-                "🔨 Live Auctions",
-                "📋 All Inventory Feed",
-                "🔔 Push Alerts",
-                "⚙️ Account Profile"
-            ],
-            index=0
-        )
-
-        st.divider()
-        st.subheader("⚙️ Sourcing Filters")
-        
-        mode = st.radio(
-            "Legal Framework",
-            ["Massachusetts Compliant", "Federal Standard"]
-        )
-        is_ma = (mode == "Massachusetts Compliant")
-
-        # Source sites multi-select
-        default_sources = ["GunBroker", "HiBid"] if active_view == "🔨 Live Auctions" else ["GunBroker", "Armslist", "HiBid"]
-        selected_sources = st.multiselect(
-            "Source Platforms",
-            ["GunBroker", "HiBid", "Armslist"],
-            default=default_sources
-        )
-
-        min_profit = st.slider("Min Net Spread ($)", 25, 600, 100, 25)
-        min_margin = st.slider("Min Margin (%)", 5, 60, 15, 5)
-        max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=2500, step=100)
-
-        action_only = st.checkbox("Show 'BID' Only (Spread ≥ Target)", value=True)
-        pre_ban_only = st.checkbox("Pre-Ban Grandfathered Only", value=False) if is_ma else False
-        search_query = st.text_input("🔍 Search Keyword (Make, Model, Title)", "").strip().lower()
-
-    # TOP HEADER
-    h1, h2 = st.columns([3, 1])
-    h1.title(f"{active_view} — {mode}")
-    if not is_pro:
-        h2.link_button(
-            "⚡ Upgrade Pro ($199/mo)",
-            stripe_url,
-            type="primary",
-            use_container_width=True
-        )
-
-    feed = get_feed()
-    all_lots = feed.get("lots", [])
-    st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}**")
-
-    # Safe computation of display fields
-    for l in all_lots:
-        l["disp_retail"] = float(l.get("ma_retail", 0.0) if is_ma else l.get("federal_retail", 0.0))
-        l["disp_profit"] = float(l.get("ma_profit", 0.0) if is_ma else l.get("federal_profit", 0.0))
-        l["disp_margin"] = float(l.get("ma_margin", 0.0) if is_ma else l.get("federal_margin", 0.0))
-        l["disp_act"] = bool(l.get("actionable_ma", False) if is_ma else l.get("actionable_federal", False))
-        
-        # Determine auction format vs fixed price
-        is_auction_lot = l.get("source_site") in ["GunBroker", "HiBid"] or "bid" in l.get("title", "").lower()
-        l["is_auction"] = is_auction_lot
-
-    # Helper function to render table
-    def render_feed_table(items, empty_msg):
-        if not is_pro:
-            st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all 20+ arbitrage spreads.")
-        
-        st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total inventory.")
-        
-        if items:
-            rows = []
-            for idx, lot in enumerate(items):
-                open_row = is_pro or (idx < 2)
-                direct_link = lot.get("listing_url", "")
-                rows.append({
-                    "Signal": "🟢 BID" if lot.get("disp_act") else "🔴 PASS",
-                    "Source": lot.get("source_site", "Direct"),
-                    "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Classified",
-                    "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
-                    "Current Bid / Ask": f"${float(lot.get('current_bid', 0)):.2f}",
-                    "Total Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
-                    "Target Value": f"${lot.get('disp_retail', 0):.2f}",
-                    "Net Spread": f"+${lot.get('disp_profit', 0):.2f}" if open_row else "🔒 Pro Only",
-                    "Margin": f"{lot.get('disp_margin', 0):.1f}%" if open_row else "🔒 Locked",
-                    "Recommended Max Bid": f"${float(lot.get('max_bid', 0)):.2f}" if open_row else "🔒 Pro Only",
-                    "Badge": lot.get("compliance_badge", "Title 1"),
-                    "Link": direct_link if open_row else stripe_url
-                })
-            
-            st.dataframe(
-                pd.DataFrame(rows),
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Link": st.column_config.LinkColumn(
-                        "Direct Listing",
-                        display_text="Open Lot ↗" if open_row else "Unlock 🔒"
-                    )
-                }
-            )
-        else:
-            st.warning(empty_msg)
-
-    # Filtering logic applied across lots
-    filtered_lots = []
-    for l in all_lots:
-        if selected_sources and l.get("source_site") not in selected_sources:
-            continue
-        if l["disp_profit"] < min_profit:
-            continue
-        if l["disp_margin"] < min_margin:
-            continue
-        if float(l.get("current_bid", 0)) > max_cost:
-            continue
-        if action_only and not l["disp_act"]:
-            continue
-        if is_ma and pre_ban_only and not l.get("is_pre_ban", False):
-            continue
-        if search_query:
-            combined = f"{l.get('make','')} {l.get('model','')} {l.get('title','')} {l.get('compliance_badge','')}".lower()
-            if search_query not in combined:
-                continue
-        filtered_lots.append(l)
-
-    # ---------------------------------------------------------
-    # TAB 1: LIVE AUCTIONS ONLY (ISOLATED VIEW)
-    # ---------------------------------------------------------
-    if active_view == "🔨 Live Auctions":
-        auction_items = [l for l in filtered_lots if l.get("is_auction")]
-        
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Active Live Auctions", f"{len(auction_items)} Lots")
-        avg_auction_spread = (
-            sum(l["disp_profit"] for l in auction_items) / len(auction_items)
-            if auction_items else 0.0
-        )
-        m2.metric("Average Auction Spread", f"+${avg_auction_spread:.2f}")
-        top_auction_margin = max([l["disp_margin"] for l in auction_items], default=0.0)
-        m3.metric("Top Auction Margin", f"{top_auction_margin:.1f}%")
-        
-        render_feed_table(
-            auction_items,
-            "No live auctions currently match your filter criteria. Adjust the minimum profit or clear search terms."
-        )
-
-    # ---------------------------------------------------------
-    # TAB 2: ALL INVENTORY FEED (COMBINED VIEW)
-    # ---------------------------------------------------------
-    elif active_view == "📋 All Inventory Feed":
-        render_feed_table(
-            filtered_lots,
-            "No lots match the chosen criteria across auctions and classifieds. Try broadening your filter range."
-        )
-
-    # ---------------------------------------------------------
-    # TAB 3: PUSH ALERTS
-    # ---------------------------------------------------------
-    elif active_view == "🔔 Push Alerts":
-        st.subheader("🔔 Autonomous Buy Alerts")
-        st.write(f"Alert Dispatch Target: `{user_email}`")
-        u_thresh = st.number_input(
-            "Min Profit Spread for Automated Email Dispatch ($)",
-            value=float(current_user.get("min_profit", 150.0)),
-            step=25.0
-        )
-        if st.button("💾 Save Alert Settings", use_container_width=True):
-            users = get_all_users()
-            if user_email in users:
-                users[user_email]["min_profit"] = u_thresh
-                save_all_users(users)
-                st.session_state["user"]["min_profit"] = u_thresh
-                st.success("Alert preferences saved successfully!")
-
-    # ---------------------------------------------------------
-    # TAB 4: ACCOUNT PROFILE
-    # ---------------------------------------------------------
-    elif active_view == "⚙️ Account Profile":
-        st.subheader("Store Profile & Membership")
-        st.write(f"**Business Store:** {store_title}")
-        st.write(f"**Email Address:** {user_email}")
-        st.write(f"**FFL License:** {current_user.get('ffl') or 'Not provided'}")
-        st.write(f"**Subscription Plan:** {'🟢 Pro Subscriber (Active VIP)' if is_pro else '🟡 Free Tier'}")
-        st.divider()
-        if not is_pro:
-            st.markdown("### Activate Pro Membership ($199/month)")
-            st.write("Instant access to all masked arbitrage listings, custom alert thresholds, and direct auction lot URLs.")
-            st.link_button(
-                "👉 Complete Checkout via Stripe",
-                stripe_url,
-                type="primary",
-                use_container_width=True
-            )
-        else:
-            st.success("Your Pro subscription is fully active. All live feeds, links, and calculation metrics are unlocked.")
-
-except Exception as e:
-    st.error(f"Dashboard render issue: {str(e)}")
-    st.code(traceback.format_exc())
