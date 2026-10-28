@@ -27,7 +27,7 @@ ALL_PLATFORMS = [
     "UsedGuns.com"
 ]
 
-# CSS to ensure table expands to full container width without scroll clipping
+# Ensure table takes full container width and disables inner clipping
 st.markdown(
     """
 <style>
@@ -114,7 +114,7 @@ if not st.session_state["authenticated"]:
 # ---------------------------------------------------------
 with st.sidebar:
     st.title("🎯 FFL Radar")
-    st.success("🟢 Full Catalog Unlocked")
+    st.success("🟢 Full Catalog Unlocked (500+ Active)")
     st.caption("Operator: `camerondickens9000@gmail.com`")
 
     if st.button("🚪 Lock Terminal", use_container_width=True, key="btn_sign_out"):
@@ -154,8 +154,8 @@ with st.sidebar:
     )
 
     st.caption("Profitability thresholds (default wide open):")
-    min_profit = st.slider("Min Net Spread ($)", -300, 600, -300, 25, key="slider_min_profit")
-    min_margin = st.slider("Min Margin (%)", -100, 60, -100, 5, key="slider_min_margin")
+    min_profit = st.slider("Min Net Spread ($)", -300, 800, -300, 25, key="slider_min_profit")
+    min_margin = st.slider("Min Margin (%)", -100, 70, -100, 5, key="slider_min_margin")
     max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=5000, step=250, key="num_max_cost")
 
     action_only = st.checkbox("Show 'BID' Targets Only (≥ Threshold)", value=False, key="chk_action_only")
@@ -179,7 +179,7 @@ for l in all_lots:
     l["is_auction"] = is_auction_lot
 
 def render_feed_table(items, empty_msg):
-    st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total inventory.")
+    st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total active inventory.")
 
     if items:
         rows = []
@@ -209,7 +209,7 @@ def render_feed_table(items, empty_msg):
             })
 
         df = pd.DataFrame(rows)
-        # Dynamically sized height: header + all rows so internal scrollbar is disabled
+        # Dynamically sized height ensures all 500+ rows render smoothly into the page
         calculated_height = int((len(rows) + 1) * 36 + 15)
 
         st.dataframe(
