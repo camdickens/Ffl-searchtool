@@ -1,70 +1,429 @@
 import os
 import json
+import hashlib
+import traceback
 from datetime import datetime
+import requests
+import pandas as pd
+import streamlit as st
 
+st.set_page_config(
+    page_title="FFL Deal Radar",
+    page_icon="🎯",
+    layout="wide"
+)
+
+USERS_FILE = "users.json"
 FEED_FILE = "feed_data.json"
+STRIPE_BASE_URL = "https://buy.stripe.com/test_replace"
+CRON_TOKEN = "DEALER2026"
 
-def mk(lid, src, title, make, mod, bid, ret, pre, badge, url):
-    prem = 0.18 if src == "HiBid" else 0.05
-    landed = round((bid * (1.0 + prem)) + 65.0, 2)
-    m_ret = round(ret * (1.65 if pre else 1.12), 2)
-    f_p = round(ret - landed, 2)
-    m_p = round(m_ret - landed, 2)
+# ---------------------------------------------------------
+# VIP / PRO BYPASS CONFIGURATION
+# ---------------------------------------------------------
+ADMIN_BYPASS_EMAILS = [
+    "camerondickens9000@gmail.com",
+    "admin@ffldealradar.com",
+    "owner@dealfinder.com",
+    "test@test.com"
+]
+
+# ---------------------------------------------------------
+# 1. AUTONOMOUS CRON SCRAPER TRIGGER
+# ---------------------------------------------------------
+params = st.query_params
+if params.get("task") == "scrape" and params.get("token") == CRON_TOKEN:
+    try:
+        import worker
+        worker.main()
+        st.write("CRON_OK: worker.main() executed successfully.")
+    except Exception as e:
+        st.write(f"CRON_ERROR: {str(e)}")
+        st.code(traceback.format_exc())
+    st.stop()
+
+# ---------------------------------------------------------
+# 2. USER DATABASE & HELPERS
+# ---------------------------------------------------------
+def hash_pw(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def get_all_users() -> dict:
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_all_users(users: dict):
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
+def register_user(email, password, store, ffl):
+    users = get_all_users()
+    e = email.strip().lower()
+    if e in users:
+        return False, "Account already exists."
+    is_vip = e in [a.lower() for a in ADMIN_BYPASS_EMAILS]
+    users[e] = {
+        "store_name": store.strip(),
+        "ffl": ffl.strip(),
+        "password_hash": hash_pw(password),
+        "plan": "pro" if is_vip else "free",
+        "created_at": datetime.now().strftime("%Y-%m-%d"),
+        "min_profit": 150.0,
+        "email_alerts": True
+    }
+    save_all_users(users)
+    return True, "Account created."
+
+def authenticate_user(email, password):
+    users = get_all_users()
+    e = email.strip().lower()
+    user = users.get(e)
+    if user and user.get("password_hash") == hash_pw(password):
+        user_copy = dict(user)
+        user_copy["email"] = e
+        if e in [a.lower() for a in ADMIN_BYPASS_EMAILS]:
+            user_copy["plan"] = "pro"
+        return user_copy
+    return None
+
+def upgrade_user_to_pro(email: str):
+    users = get_all_users()
+    e = email.strip().lower()
+    if e in users:
+        users[e]["plan"] = "pro"
+        save_all_users(users)
+        return True
+    return False
+
+# ---------------------------------------------------------
+# 3. AUTOMATED STRIPE RETURN HANDLER
+# ---------------------------------------------------------
+if "session_id" in params:
+    sess_id = params.get("session_id")
+    s_key = os.environ.get("STRIPE_SECRET_KEY") or st.secrets.get("STRIPE_SECRET_KEY", "")
+    if s_key:
+        try:
+            resp = requests.get(
+                f"https://api.stripe.com/v1/checkout/sessions/{sess_id}",
+                auth=(s_key, ""),
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("payment_status") == "paid":
+                    c_email = (
+                        data.get("customer_details", {}).get("email")
+                        or data.get("customer_email")
+                    )
+                    if c_email:
+                        upgrade_user_to_pro(c_email)
+                        st.success(f"🎉 Payment Verified! Account '{c_email}' upgraded to Pro.")
+                        users = get_all_users()
+                        if c_email.lower() in users:
+                            st.session_state["user"] = users[c_email.lower()]
+                            st.session_state["user"]["email"] = c_email.lower()
+        except Exception:
+            pass
+
+# ---------------------------------------------------------
+# 4. FEED LOADER
+# ---------------------------------------------------------
+def get_feed():
+    if not os.path.exists(FEED_FILE):
+        try:
+            import worker
+            worker.main()
+        except Exception:
+            pass
+
+    if os.path.exists(FEED_FILE):
+        try:
+            with open(FEED_FILE, "r") as f:
+                data = json.load(f)
+                if isinstance(data, dict) and "lots" in data:
+                    return data
+        except Exception:
+            pass
+
     return {
-        "lot_id": lid,
-        "source_site": src,
-        "title": title,
-        "make": make,
-        "model": mod,
-        "current_bid": bid,
-        "total_landed_cost": landed,
-        "federal_retail": ret,
-        "federal_profit": f_p,
-        "federal_margin": round(f_p / ret * 100, 1) if ret else 0.0,
-        "actionable_federal": bool(f_p >= 90.0),
-        "ma_retail": m_ret,
-        "ma_profit": m_p,
-        "ma_margin": round(m_p / m_ret * 100, 1) if m_ret else 0.0,
-        "actionable_ma": bool(m_p >= 120.0),
-        "max_bid": round(m_ret * 0.70, 2),
-        "is_pre_ban": pre,
-        "compliance_badge": badge,
-        "listing_url": url
-    }
-
-def get_lots():
-    return [
-        mk("GB-101", "GunBroker", "Colt AR-15 Sporter Match 5.56 Pre-94", "colt", "ar-15", 780.0, 1550.0, True, "🔥 Pre-Ban Grandfathered", "https://www.gunbroker.com/item/1048821941"),
-        mk("HB-202", "HiBid", "Smith & Wesson Model 19-3 .357 C&R", "smith & wesson", "model 19", 360.0, 850.0, False, "🏛️ C&R 50-Year Exempt", "https://hibid.com/lot/198234120"),
-        mk("AL-303", "Armslist", "Remington 870 Wingmaster 12G", "remington", "870", 195.0, 480.0, False, "Federal Title 1", "https://www.armslist.com/classifieds/massachusetts/guns"),
-        mk("GB-404", "GunBroker", "Glock 19 Gen 5 9mm MOS 3 Mags", "glock", "19", 420.0, 560.0, False, "⚠️ Frame Only", "https://www.gunbroker.com/item/1049102452"),
-        mk("HB-505", "HiBid", "S&W Model 686-4 .357 Mag 4-inch", "smith & wesson", "model 686", 480.0, 890.0, False, "Commercial Roster", "https://hibid.com/lot/198302114"),
-        mk("GB-606", "GunBroker", "SIG P226 W.Germany 9mm 1990", "sig sauer", "p226", 510.0, 920.0, True, "🔥 Pre-Ban Grandfathered", "https://www.gunbroker.com/item/1048771239"),
-        mk("HB-707", "HiBid", "Ruger GP100 .357 Mag 6-inch Blued", "ruger", "gp100", 390.0, 720.0, False, "Commercial Roster", "https://hibid.com/lot/198299102"),
-        mk("GB-808", "GunBroker", "Marlin 1895 Guide Gun .45-70 JM", "marlin", "1895", 650.0, 1150.0, False, "Federal Title 1", "https://www.gunbroker.com/item/1048991204"),
-        mk("AL-909", "Armslist", "Beretta 92FS 9mm Italy Trade-in", "beretta", "92fs", 380.0, 620.0, False, "Commercial Roster", "https://www.armslist.com/classifieds/massachusetts/guns"),
-        mk("GB-010", "GunBroker", "CZ 75 SP-01 Tactical 9mm Night Sights", "cz", "75 sp-01", 490.0, 750.0, False, "Commercial Roster", "https://www.gunbroker.com/item/1049210041"),
-        mk("HB-011", "HiBid", "Colt Python .357 Mag 6-inch 1978", "colt", "python", 890.0, 1450.0, False, "🏛️ C&R 50-Year Exempt", "https://hibid.com/lot/198410291"),
-        mk("GB-012", "GunBroker", "Benelli M4 Tactical 12GA Ghost Rings", "benelli", "m4", 1250.0, 1950.0, False, "Federal Title 1", "https://www.gunbroker.com/item/1049341102"),
-        mk("AL-013", "Armslist", "Mossberg 590A1 Retrograde 12GA", "mossberg", "590a1", 340.0, 560.0, False, "Federal Title 1", "https://www.armslist.com/classifieds/massachusetts/guns"),
-        mk("GB-014", "GunBroker", "SIG Sauer P365X 9mm Optics Ready", "sig sauer", "p365x", 395.0, 580.0, False, "Commercial Roster", "https://www.gunbroker.com/item/1049402194"),
-        mk("HB-015", "HiBid", "Browning Citori 12GA Over/Under 28in", "browning", "citori", 910.0, 1750.0, False, "Federal Title 1", "https://hibid.com/lot/198499210"),
-        mk("GB-016", "GunBroker", "Ruger 10/22 Carbine .22 LR Synthetic", "ruger", "10/22", 140.0, 280.0, False, "Federal Title 1", "https://www.gunbroker.com/item/1049510103"),
-        mk("AL-017", "Armslist", "Tikka T3x Lite 6.5 Creedmoor SS", "tikka", "t3x", 475.0, 760.0, False, "Federal Title 1", "https://www.armslist.com/classifieds/massachusetts/guns"),
-        mk("GB-018", "GunBroker", "Springfield 1911 Loaded .45 Stainless", "springfield", "1911", 520.0, 820.0, False, "Commercial Roster", "https://www.gunbroker.com/item/1049611002"),
-        mk("HB-019", "HiBid", "Winchester Model 94 .30-30 Pre-64", "winchester", "model 94", 420.0, 800.0, False, "🏛️ C&R 50-Year Exempt", "https://hibid.com/lot/198530114"),
-        mk("GB-020", "GunBroker", "FN 509 Tactical 9mm FDE Threaded", "fn", "509", 480.0, 780.0, False, "Commercial Roster", "https://www.gunbroker.com/item/1049712033")
-    ]
-
-def main():
-    lots = get_lots()
-    packet = {
         "last_updated": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
-        "lots": lots
+        "lots": []
     }
-    with open(FEED_FILE, "w") as f:
-        json.dump(packet, f, indent=2)
-    print(f"WORKER_SUCCESS: Wrote {len(lots)} verified items.")
 
-if __name__ == "__main__":
-    main()
+# ---------------------------------------------------------
+# 5. AUTHENTICATION GATEWAY
+# ---------------------------------------------------------
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+
+if st.session_state["user"] is None:
+    st.title("🎯 FFL Deal Radar — Dealer Portal")
+    st.write("Sign in or create an account to access live sourcing arbitrage feeds.")
+    
+    t_login, t_signup = st.tabs(["🔐 Sign In", "📝 Create Dealer Account"])
+    with t_login:
+        with st.form("login_form"):
+            l_email = st.text_input("Business Email")
+            l_pw = st.text_input("Password", type="password")
+            if st.form_submit_button("Sign In", use_container_width=True):
+                user = authenticate_user(l_email, l_pw)
+                if user:
+                    st.session_state["user"] = user
+                    st.rerun()
+                else:
+                    st.error("Invalid credentials.")
+    with t_signup:
+        with st.form("signup_form"):
+            s_name = st.text_input("Store Name *")
+            s_ffl = st.text_input("FFL Number (Optional)")
+            s_email = st.text_input("Account Email *")
+            s_pw = st.text_input("Password *", type="password")
+            if st.form_submit_button("Create Account", use_container_width=True):
+                if s_name and s_email and s_pw:
+                    ok, msg = register_user(s_email, s_pw, s_name, s_ffl)
+                    if ok:
+                        st.success(f"{msg} You can now log in.")
+                    else:
+                        st.error(msg)
+                else:
+                    st.error("Fill in all required fields.")
+    st.stop()
+
+# ---------------------------------------------------------
+# 6. AUTHENTICATED DASHBOARD
+# ---------------------------------------------------------
+try:
+    current_user = st.session_state.get("user") or {}
+    user_email = current_user.get("email", "").lower()
+    is_pro = (current_user.get("plan") == "pro") or (user_email in [a.lower() for a in ADMIN_BYPASS_EMAILS])
+    store_title = current_user.get("store_name", "Dealer")
+    stripe_url = f"{STRIPE_BASE_URL}?prefilled_email={user_email}"
+
+    # SIDEBAR CONTROLS & NAVIGATION TABS ON THE LEFT
+    with st.sidebar:
+        st.title("🎯 FFL Radar")
+        st.write(f"Store: **{store_title}**")
+        st.caption(f"Account: `{user_email}`")
+        
+        if is_pro:
+            st.success("🟢 Pro Dealer Unlocked (VIP Access)")
+        else:
+            st.warning("🟡 Free Preview Active (Top 2 Free)")
+            st.link_button(
+                "⚡ Upgrade Pro ($199/mo)",
+                stripe_url,
+                type="primary",
+                use_container_width=True
+            )
+            
+        if st.button("🚪 Sign Out", use_container_width=True):
+            st.session_state["user"] = None
+            st.rerun()
+
+        st.divider()
+        st.subheader("📑 Views & Sections")
+        
+        # Left-side Tab Selection
+        active_view = st.radio(
+            "Select Section",
+            [
+                "🔨 Live Auctions",
+                "📋 All Inventory Feed",
+                "🔔 Push Alerts",
+                "⚙️ Account Profile"
+            ],
+            index=0
+        )
+
+        st.divider()
+        st.subheader("⚙️ Sourcing Filters")
+        
+        mode = st.radio(
+            "Legal Framework",
+            ["Massachusetts Compliant", "Federal Standard"]
+        )
+        is_ma = (mode == "Massachusetts Compliant")
+
+        # Source sites multi-select
+        default_sources = ["GunBroker", "HiBid"] if active_view == "🔨 Live Auctions" else ["GunBroker", "Armslist", "HiBid"]
+        selected_sources = st.multiselect(
+            "Source Platforms",
+            ["GunBroker", "HiBid", "Armslist"],
+            default=default_sources
+        )
+
+        min_profit = st.slider("Min Net Spread ($)", 25, 600, 100, 25)
+        min_margin = st.slider("Min Margin (%)", 5, 60, 15, 5)
+        max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=2500, step=100)
+
+        action_only = st.checkbox("Show 'BID' Only (Spread ≥ Target)", value=True)
+        pre_ban_only = st.checkbox("Pre-Ban Grandfathered Only", value=False) if is_ma else False
+        search_query = st.text_input("🔍 Search Keyword (Make, Model, Title)", "").strip().lower()
+
+    # TOP HEADER
+    h1, h2 = st.columns([3, 1])
+    h1.title(f"{active_view} — {mode}")
+    if not is_pro:
+        h2.link_button(
+            "⚡ Upgrade Pro ($199/mo)",
+            stripe_url,
+            type="primary",
+            use_container_width=True
+        )
+
+    feed = get_feed()
+    all_lots = feed.get("lots", [])
+    st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}**")
+
+    # Safe computation of display fields
+    for l in all_lots:
+        l["disp_retail"] = float(l.get("ma_retail", 0.0) if is_ma else l.get("federal_retail", 0.0))
+        l["disp_profit"] = float(l.get("ma_profit", 0.0) if is_ma else l.get("federal_profit", 0.0))
+        l["disp_margin"] = float(l.get("ma_margin", 0.0) if is_ma else l.get("federal_margin", 0.0))
+        l["disp_act"] = bool(l.get("actionable_ma", False) if is_ma else l.get("actionable_federal", False))
+        
+        # Determine auction format vs fixed price
+        is_auction_lot = l.get("source_site") in ["GunBroker", "HiBid"] or "bid" in l.get("title", "").lower()
+        l["is_auction"] = is_auction_lot
+
+    # Helper function to render table
+    def render_feed_table(items, empty_msg):
+        if not is_pro:
+            st.info("💡 Free Preview: Top 2 lots unlocked with direct source links. Upgrade to Pro to unlock all 20+ arbitrage spreads.")
+        
+        st.write(f"Showing **{len(items)}** matching lots out of **{len(all_lots)}** total inventory.")
+        
+        if items:
+            rows = []
+            for idx, lot in enumerate(items):
+                open_row = is_pro or (idx < 2)
+                direct_link = lot.get("listing_url", "")
+                rows.append({
+                    "Signal": "🟢 BID" if lot.get("disp_act") else "🔴 PASS",
+                    "Source": lot.get("source_site", "Direct"),
+                    "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Classified",
+                    "Model": f"{lot.get('make', '').title()} {lot.get('model', '').title()}",
+                    "Current Bid / Ask": f"${float(lot.get('current_bid', 0)):.2f}",
+                    "Total Landed": f"${float(lot.get('total_landed_cost', 0)):.2f}",
+                    "Target Value": f"${lot.get('disp_retail', 0):.2f}",
+                    "Net Spread": f"+${lot.get('disp_profit', 0):.2f}" if open_row else "🔒 Pro Only",
+                    "Margin": f"{lot.get('disp_margin', 0):.1f}%" if open_row else "🔒 Locked",
+                    "Recommended Max Bid": f"${float(lot.get('max_bid', 0)):.2f}" if open_row else "🔒 Pro Only",
+                    "Badge": lot.get("compliance_badge", "Title 1"),
+                    "Link": direct_link if open_row else stripe_url
+                })
+            
+            st.dataframe(
+                pd.DataFrame(rows),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Link": st.column_config.LinkColumn(
+                        "Direct Listing",
+                        display_text="Open Lot ↗" if open_row else "Unlock 🔒"
+                    )
+                }
+            )
+        else:
+            st.warning(empty_msg)
+
+    # Filtering logic applied across lots
+    filtered_lots = []
+    for l in all_lots:
+        if selected_sources and l.get("source_site") not in selected_sources:
+            continue
+        if l["disp_profit"] < min_profit:
+            continue
+        if l["disp_margin"] < min_margin:
+            continue
+        if float(l.get("current_bid", 0)) > max_cost:
+            continue
+        if action_only and not l["disp_act"]:
+            continue
+        if is_ma and pre_ban_only and not l.get("is_pre_ban", False):
+            continue
+        if search_query:
+            combined = f"{l.get('make','')} {l.get('model','')} {l.get('title','')} {l.get('compliance_badge','')}".lower()
+            if search_query not in combined:
+                continue
+        filtered_lots.append(l)
+
+    # ---------------------------------------------------------
+    # TAB 1: LIVE AUCTIONS ONLY (ISOLATED VIEW)
+    # ---------------------------------------------------------
+    if active_view == "🔨 Live Auctions":
+        auction_items = [l for l in filtered_lots if l.get("is_auction")]
+        
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Active Live Auctions", f"{len(auction_items)} Lots")
+        avg_auction_spread = (
+            sum(l["disp_profit"] for l in auction_items) / len(auction_items)
+            if auction_items else 0.0
+        )
+        m2.metric("Average Auction Spread", f"+${avg_auction_spread:.2f}")
+        top_auction_margin = max([l["disp_margin"] for l in auction_items], default=0.0)
+        m3.metric("Top Auction Margin", f"{top_auction_margin:.1f}%")
+        
+        render_feed_table(
+            auction_items,
+            "No live auctions currently match your filter criteria. Adjust the minimum profit or clear search terms."
+        )
+
+    # ---------------------------------------------------------
+    # TAB 2: ALL INVENTORY FEED (COMBINED VIEW)
+    # ---------------------------------------------------------
+    elif active_view == "📋 All Inventory Feed":
+        render_feed_table(
+            filtered_lots,
+            "No lots match the chosen criteria across auctions and classifieds. Try broadening your filter range."
+        )
+
+    # ---------------------------------------------------------
+    # TAB 3: PUSH ALERTS
+    # ---------------------------------------------------------
+    elif active_view == "🔔 Push Alerts":
+        st.subheader("🔔 Autonomous Buy Alerts")
+        st.write(f"Alert Dispatch Target: `{user_email}`")
+        u_thresh = st.number_input(
+            "Min Profit Spread for Automated Email Dispatch ($)",
+            value=float(current_user.get("min_profit", 150.0)),
+            step=25.0
+        )
+        if st.button("💾 Save Alert Settings", use_container_width=True):
+            users = get_all_users()
+            if user_email in users:
+                users[user_email]["min_profit"] = u_thresh
+                save_all_users(users)
+                st.session_state["user"]["min_profit"] = u_thresh
+                st.success("Alert preferences saved successfully!")
+
+    # ---------------------------------------------------------
+    # TAB 4: ACCOUNT PROFILE
+    # ---------------------------------------------------------
+    elif active_view == "⚙️ Account Profile":
+        st.subheader("Store Profile & Membership")
+        st.write(f"**Business Store:** {store_title}")
+        st.write(f"**Email Address:** {user_email}")
+        st.write(f"**FFL License:** {current_user.get('ffl') or 'Not provided'}")
+        st.write(f"**Subscription Plan:** {'🟢 Pro Subscriber (Active VIP)' if is_pro else '🟡 Free Tier'}")
+        st.divider()
+        if not is_pro:
+            st.markdown("### Activate Pro Membership ($199/month)")
+            st.write("Instant access to all masked arbitrage listings, custom alert thresholds, and direct auction lot URLs.")
+            st.link_button(
+                "👉 Complete Checkout via Stripe",
+                stripe_url,
+                type="primary",
+                use_container_width=True
+            )
+        else:
+            st.success("Your Pro subscription is fully active. All live feeds, links, and calculation metrics are unlocked.")
+
+except Exception as e:
+    st.error(f"Dashboard render issue: {str(e)}")
+    st.code(traceback.format_exc())
