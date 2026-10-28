@@ -206,45 +206,4 @@ if st.session_state["user"] is None:
             l_pw = st.text_input("Password", type="password")
             remember_me = st.checkbox("Keep me signed in on this device", value=True)
             if st.form_submit_button("Sign In", use_container_width=True):
-                user = authenticate_user(l_email, l_pw)
-                if user:
-                    st.session_state["user"] = user
-                    if remember_me:
-                        st.query_params["auth"] = make_session_token(user["email"])
-                    st.rerun()
-                else:
-                    st.error("Invalid credentials.")
-    with t_signup:
-        with st.form("signup_form"):
-            s_name = st.text_input("Store Name *")
-            s_ffl = st.text_input("FFL Number (Optional)")
-            s_email = st.text_input("Account Email *")
-            s_pw = st.text_input("Password *", type="password")
-            if st.form_submit_button("Create Account", use_container_width=True):
-                if s_name and s_email and s_pw:
-                    ok, msg = register_user(s_email, s_pw, s_name, s_ffl)
-                    if ok:
-                        st.success(f"{msg} You can now log in.")
-                    else:
-                        st.error(msg)
-                else:
-                    st.error("Fill in all required fields.")
-    st.stop()
-
-# ---------------------------------------------------------
-# 6. AUTHENTICATED DASHBOARD
-# ---------------------------------------------------------
-try:
-    current_user = st.session_state.get("user") or {}
-    user_email = current_user.get("email", "").lower()
-    is_pro = (current_user.get("plan") == "pro") or (user_email in [a.lower() for a in ADMIN_BYPASS_EMAILS])
-    store_title = current_user.get("store_name", "Dealer")
-    stripe_url = f"{STRIPE_BASE_URL}?prefilled_email={user_email}"
-
-    if st.query_params.get("auth") != make_session_token(user_email):
-        st.query_params["auth"] = make_session_token(user_email)
-
-    with st.sidebar:
-        st.title("🎯 FFL Radar")
-        st.write(f"Store: **{store_title}**")
-        st.caption(f"Account: `{user_email}`")
+                user = authenticate_user(l_email, l_
