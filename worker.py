@@ -191,13 +191,23 @@ def fetch_html(target_url: str, render_js: bool = False, use_premium: bool = Fal
     return ""
 
 def scrape_gb_keyword(kw):
-    """Worker function for parallel GunBroker scraping."""
+    """Worker function for parallel GunBroker scraping with diagnostic output."""
     lots = []
     url = f"https://www.gunbroker.com/All/search?Keywords={kw}&Sort=1&PageSize=48&Tab=1"
-    html = fetch_html(url, use_premium=True)
+    
+    # Trying with JS rendering enabled to rule out dynamic loading
+    html = fetch_html(url, render_js=True, use_premium=True)
+    
     if html:
+        print(f"\n--- HTML SNIPPET FOR {kw} ---")
+        print(html[:500])
+        print("-----------------------------\n")
+        
         soup = BeautifulSoup(html, "html.parser")
-        for card in soup.select(".listing, .tile, .item-tile"):
+        cards = soup.select(".listing, .tile, .item-tile")
+        print(f"Found {len(cards)} item cards for '{kw}'")
+        
+        for card in cards:
             txt = card.get_text()
             title_node = card.select_one(".title a, .item-title, h3 a")
             price_node = card.select_one(".price, .bid-price")
@@ -229,7 +239,7 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running parallel inventory sync (LIVE DATA ONLY)...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running parallel inventory sync (LIVE DATA ONLY, DIAGNOSTICS ENABLED)...")
     
     live_items = live_scrape_all_platforms()
 
@@ -255,3 +265,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
