@@ -10,14 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FEED_FILE = "feed_data.json"
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "").strip()
 
-SOLD_REJECT_TERMS = [
-    "sold", "sold out", "out of stock", "bidding closed", "auction ended",
-    "listing ended", "ended", "closed", "winning bid", "final bid",
-    "sale pending", "pending sale", "spf", "reserve met", "reserve not met",
-    "backorder", "notify me", "notify when in stock", "expired", "inactive",
-    "won", "completed", "archive", "archived", "time left: 0", "item ended"
-]
-
 # Master Triangulated Valuation Matrix
 MULTI_SOURCE_VALUATIONS = {
     "colt python": {"gb_sold": 1420.0, "gc_retail": 1495.0, "ga_comp": 1450.0},
@@ -35,43 +27,19 @@ PRE_BAN_TRIGGERS = ["pre-ban", "pre ban", "pre-94", "pre 94", "sporter match", "
 
 SITE_CONFIGS = {
     "GunBroker": {
-        "card_selector": ".listing, .tile, .item-tile",
-        "title_selector": ".title a, .item-title, h3 a",
-        "price_selector": ".price, .bid-price",
+        # Broad card selector targeting any potential listing container
+        "card_selector": "div[class*='item'], div[class*='listing'], div[class*='tile'], article, tr",
         "url_prefix": "https://www.gunbroker.com"
     },
     "Guns.com": {
-        "card_selector": ".productCard, .product-card, .productItem",
-        "title_selector": ".productCard__title a, a.product-title, h3 a",
-        "price_selector": ".productCard__price, .price",
+        "card_selector": "div[class*='product'], article, div[class*='card']",
         "url_prefix": "https://www.guns.com"
     },
     "Armslist": {
-        "card_selector": ".card, .listing-card, .row.category-item",
-        "title_selector": ".title a, h2 a, h4 a",
-        "price_selector": ".price, .listing-price",
+        "card_selector": "div[class*='card'], div[class*='listing'], article",
         "url_prefix": "https://www.armslist.com"
-    },
-    "HiBid": {
-        "card_selector": ".lot-item, .lot-card, .lot-box",
-        "title_selector": ".lot-title, .lot-name",
-        "price_selector": ".lot-high-bid, .current-bid, .price",
-        "url_prefix": "https://hibid.com"
-    },
-    "TacSwap": {
-        "card_selector": "a[href^='/post/']",
-        "title_selector": "h6, h5, .post-title, p",
-        "price_selector": "p, span", 
-        "url_prefix": "https://www.tacswap.com"
     }
 }
-
-def is_sold_or_ended(text: str) -> bool:
-    t_clean = text.lower()
-    for term in SOLD_REJECT_TERMS:
-        if re.search(r'\b' + re.escape(term) + r'\b', t_clean) or f"[{term}]" in t_clean or f"({term})" in t_clean:
-            return True
-    return False
 
 def extract_multi_source_valuation(title: str):
     t_lower = title.lower()
@@ -79,7 +47,6 @@ def extract_multi_source_valuation(title: str):
     matched_make = "General"
     matched_model = "Unknown"
     
-    # Baseline for items not found in our matrix
     v_dict = {"gb_sold": 550.0, "gc_retail": 610.0, "ga_comp": 580.0}
 
     for key, val_sources in MULTI_SOURCE_VALUATIONS.items():
@@ -94,14 +61,11 @@ def extract_multi_source_valuation(title: str):
     badge = "🔥 Pre-Ban Grandfathered" if is_pre else "Commercial Roster"
     return matched_make, matched_model, v_dict, val_average, is_pre, badge
 
-def calculate_margins(src, title, ask_price, url, status_text="Active"):
-    if is_sold_or_ended(title) or is_sold_or_ended(status_text) or is_sold_or_ended(url):
-        return None
-
+def calculate_margins(src, title, ask_price, url):
     make, model, val_sources, fed_avg, is_pre, badge = extract_multi_source_valuation(title)
 
-    prem_pct = 0.18 if src == "HiBid" else (0.035 if src == "GunBroker" else 0.0)
-    shipping_ffl = 45.0 if src in ["HiBid", "GunBroker"] else 30.0
+    prem_pct = 0.035 if src == "GunBroker" else 0.0
+    shipping_ffl = 45.0 if src == "GunBroker" else 30.0
 
     landed = round((ask_price * (1.0 + prem_pct)) + shipping_ffl, 2)
     ma_multiplier = 1.65 if is_pre else 1.15
@@ -153,69 +117,70 @@ def fetch_html(target_url: str, render_js: bool, use_premium: bool = True) -> st
 
 def scrape_target(site_name, task_url, render_js):
     lots = []
-    print(f"Executing task for {site_name}...")
+    print(f"Executing universal task for {site_name}...")
     html = fetch_html(task_url, render_js=render_js, use_premium=True)
     
     if html:
         soup = BeautifulSoup(html, "html.parser")
         config = SITE_CONFIGS[site_name]
         cards = soup.select(config["card_selector"])
-        print(f"[{site_name}] Found {len(cards)} raw HTML item cards.")
-        
-        dropped_noprice = 0
-        dropped_sold = 0
-        dropped_notitle = 0
+        print(f"[{site_name}] Found {len(cards)} potential card containers.")
         
         for card in cards:
-            # Bulletproof cleanup to handle weird web formatting spaces
             txt = card.get_text(separator=" ", strip=True)
-            txt_clean = re.sub(r'\s+', ' ', txt)
-            
-            title_node = card if site_name == "TacSwap" else card.select_one(config["title_selector"])
-            if not title_node:
-                dropped_notitle += 1
+            if len(txt) < 15: # Skip tiny container elements
                 continue
                 
+            # Universal Link & Title Extraction: Find the best anchor tag in the card
+            a_tag = card.select_one("a[href]")
+            if not a_tag:
+                continue
+                
+            title_str = a_tag.get_text(strip=True)
+            if len(title_str) < 5:
+                # Fallback to header tags if anchor text is just an image/icon
+                h_tag = card.select_one("h2, h3, h4, h5, span")
+                if h_tag:
+                    title_str = h_tag.get_text(strip=True)
+            
+            if len(title_str) < 5:
+                continue
+
+            # Universal Price Extraction: Scan the entire card text for any dollar amount
             price_val = 0.0
-            
-            # Aggressive Price Regex: Looks for a dollar sign, ignores spaces, and captures the numbers/decimals
-            price_node = card.select_one(config["price_selector"])
-            search_text = price_node.get_text(separator=" ", strip=True) if price_node else txt_clean
-            
-            match = re.search(r'\$\s?([0-9,]+(?:\.[0-9]{1,2})?)', search_text)
+            match = re.search(r'\$\s?([0-9,]+(?:\.[0-9]{1,2})?)', txt)
             if match:
-                price_val = float(match.group(1).replace(",", ""))
+                try:
+                    price_val = float(match.group(1).replace(",", ""))
+                except ValueError:
+                    pass
                 
-            if price_val <= 0.0:
-                dropped_noprice += 1
+            # Filter out unrealistic prices (too low to be a gun, or zero)
+            if price_val < 50.0:
                 continue
                 
-            href = title_node.get("href", "")
-            link = f"{config['url_prefix']}{href}" if href.startswith("/") else href
-            
-            # Prevent empty titles if TacSwap card was just a picture
-            title_str = title_node.get_text(strip=True) if site_name != "TacSwap" else txt_clean[:60]
-            if not title_str:
-                title_str = "Unknown Listing"
-            
-            lot = calculate_margins(site_name, title_str, price_val, link, txt_clean)
-            if lot: 
-                lots.append(lot)
+            href = a_tag.get("href", "")
+            if href.startswith("http"):
+                link = href
             else:
-                dropped_sold += 1
+                link = f"{config['url_prefix']}{href}" if href.startswith("/") else f"{config['url_prefix']}/{href}"
+            
+            lot = calculate_margins(site_name, title_str, price_val, link)
+            if lot: 
+                print(f"  -> KEPT [{site_name}]: {title_str[:40]}... | Price: ${price_val}")
+                lots.append(lot)
                 
-        print(f"[{site_name}] Results: Kept {len(lots)} | Dropped (No Price): {dropped_noprice} | Dropped (Sold/Ended): {dropped_sold} | Dropped (No Title): {dropped_notitle}")
+        print(f"[{site_name}] Successfully extracted {len(lots)} listings.")
     return lots
 
 def live_scrape_all_platforms():
     lots = []
     tasks = [
         {"site": "GunBroker", "url": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=48", "js": False},
-        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True},
-        {"site": "Armslist", "url": "https://www.armslist.com/classifieds/search?category=handguns", "js": False}
+        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True}
     ]
     
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         future_to_task = {executor.submit(scrape_target, t["site"], t["url"], t["js"]): t["site"] for t in tasks}
         for future in as_completed(future_to_task):
             try:
@@ -228,7 +193,7 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Strict Live Scrape...")
+    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Universal Scrape...")
     live_items = live_scrape_all_platforms()
 
     unique_map = {}
