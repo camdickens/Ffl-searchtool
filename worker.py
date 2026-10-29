@@ -79,6 +79,39 @@ MULTI_SOURCE_VALUATIONS = {
 
 PRE_BAN_TRIGGERS = ["pre-ban", "pre ban", "pre-94", "pre 94", "sporter match", "green label", "blue label sporter", "mak-90"]
 
+SITE_CONFIGS = {
+    "GunBroker": {
+        "card_selector": ".listing, .tile, .item-tile",
+        "title_selector": ".title a, .item-title, h3 a",
+        "price_selector": ".price, .bid-price",
+        "url_prefix": "https://www.gunbroker.com"
+    },
+    "Guns.com": {
+        "card_selector": ".productCard, .product-card, .productItem",
+        "title_selector": ".productCard__title a, a.product-title, h3 a",
+        "price_selector": ".productCard__price, .price",
+        "url_prefix": "https://www.guns.com"
+    },
+    "Armslist": {
+        "card_selector": ".card, .listing-card, .row.category-item",
+        "title_selector": ".title a, h2 a, h4 a",
+        "price_selector": ".price, .listing-price",
+        "url_prefix": "https://www.armslist.com"
+    },
+    "HiBid": {
+        "card_selector": ".lot-item, .lot-card, .lot-box",
+        "title_selector": ".lot-title, .lot-name",
+        "price_selector": ".lot-high-bid, .current-bid, .price",
+        "url_prefix": "https://hibid.com"
+    },
+    "TacSwap": {
+        "card_selector": "a[href^='/post/']",
+        "title_selector": "h6, h5, .post-title, p",
+        "price_selector": "p, span", 
+        "url_prefix": "https://www.tacswap.com"
+    }
+}
+
 def is_sold_or_ended(text: str) -> bool:
     t_clean = text.lower()
     for term in SOLD_REJECT_TERMS:
@@ -93,7 +126,6 @@ def extract_multi_source_valuation(title: str):
     matched_model = "Unknown"
     v_dict = {"gb_sold": 0.0, "gc_retail": 0.0, "ga_comp": 0.0}
 
-    # Step 1: Look for exact model matches in the dictionary
     for key, val_sources in MULTI_SOURCE_VALUATIONS.items():
         if key in t_lower:
             parts = key.split(" ", 1)
@@ -102,11 +134,10 @@ def extract_multi_source_valuation(title: str):
             v_dict = val_sources
             break
 
-    # Step 2: Look for broad brand matches if no specific model was found
     if matched_make == "General":
         brand_list = [
             "colt", "glock", "smith & wesson", "s&w", "sig sauer", "ruger", 
-            "remington", "mossberg", "maverick", "beretta", "browning", "cz", 
+            "remington", "mossberg", "beretta", "browning", "cz", 
             "springfield", "hk", "taurus", "canik", "kimber", "staccato", "fn"
         ]
         for m in brand_list:
@@ -126,7 +157,7 @@ def calculate_margins(src, title, ask_price, url, status_text="Active"):
 
     make, model, val_sources, fed_avg, is_pre, badge = extract_multi_source_valuation(title)
     
-    # STRICT INTERNAL FILTER: If we don't recognize the brand, drop it entirely.
+    # STRICT INTERNAL FILTER: Discard if brand is completely unrecognized
     if make == "General":
         return None
 
@@ -170,8 +201,8 @@ def calculate_margins(src, title, ask_price, url, status_text="Active"):
         "listing_url": url
     }
 
-def fetch_html(target_url: str, render_js: bool = False, use_premium: bool = False) -> str:
-    """Uses ScraperAPI Premium Residential routing."""
+def fetch_html(target_url: str, render_js: bool, use_premium: bool = True) -> str:
+    """Universal Fetcher routing via ScraperAPI."""
     try:
         if not SCRAPER_API_KEY:
             print("Missing API Key")
@@ -196,53 +227,72 @@ def fetch_html(target_url: str, render_js: bool = False, use_premium: bool = Fal
         
     return ""
 
-def scrape_gb_page(url, category_name):
-    """Worker function for parallel category scraping."""
+def scrape_target(site_name, task_url, render_js):
+    """Universal parser that applies the correct HTML extraction rules based on the site."""
     lots = []
-    html = fetch_html(url, render_js=True, use_premium=True)
+    print(f"Executing parallel task for {site_name}...")
+    html = fetch_html(task_url, render_js=render_js, use_premium=True)
     
     if html:
-        print(f"\n--- HTML SNIPPET FOR {category_name} ---")
-        print(html[:200]) # Shorter snippet to keep logs clean
+        print(f"\n--- HTML SNIPPET FOR {site_name} ---")
+        print(html[:200])
         
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.select(".listing, .tile, .item-tile")
-        print(f"Found {len(cards)} total items on {category_name} page")
+        config = SITE_CONFIGS[site_name]
+        
+        cards = soup.select(config["card_selector"])
+        print(f"Found {len(cards)} item cards on {site_name}")
         
         for card in cards:
-            txt = card.get_text()
-            title_node = card.select_one(".title a, .item-title, h3 a")
-            price_node = card.select_one(".price, .bid-price")
-            if title_node and price_node:
-                href = title_node.get("href", "")
-                link = f"https://www.gunbroker.com{href}" if href.startswith("/") else href
+            txt = card.get_text(separator=" ", strip=True)
+            
+            # Universal Title Extraction
+            title_node = None
+            if site_name == "TacSwap":
+                title_node = card  # Tacswap links are the cards themselves
+            else:
+                title_node = card.select_one(config["title_selector"])
+                
+            # Universal Price Extraction (Regex fallback for sites that hide price classes)
+            price_val = 0.0
+            price_node = card.select_one(config["price_selector"])
+            if price_node:
                 match = re.search(r'\$?([\d,]+\.?\d*)', price_node.get_text())
-                if match:
-                    lot = calculate_margins("GunBroker", title_node.get_text(strip=True), float(match.group(1).replace(",", "")), link, txt)
-                    # The internal filter: Only append if calculate_margins returned a valid dictionary (i.e. brand was recognized)
-                    if lot: 
-                        lots.append(lot)
-                        
-        print(f"Filtered {category_name} down to {len(lots)} recognized, relevant firearms.\n")
+                if match: price_val = float(match.group(1).replace(",", ""))
+            else:
+                # Fallback: scan the whole card text for the first dollar amount
+                match = re.search(r'\$\s?([\d,]+\.?\d*)', txt)
+                if match: price_val = float(match.group(1).replace(",", ""))
+
+            if title_node and price_val > 0:
+                href = title_node.get("href", "")
+                link = f"{config['url_prefix']}{href}" if href.startswith("/") else href
+                title_str = title_node.get_text(strip=True) if site_name != "TacSwap" else txt[:50]
+                
+                lot = calculate_margins(site_name, title_str, price_val, link, txt)
+                if lot: 
+                    lots.append(lot)
+                    
+        print(f"Filtered {site_name} down to {len(lots)} recognized firearms.\n")
     return lots
 
 def live_scrape_all_platforms():
     lots = []
     
-    # Sort=13 is "Newly Listed" on GunBroker (great for snagging fresh Buy It Now deals)
-    # PageSize=96 maximizes the number of listings we pull per proxy request
-    target_pages = {
-        "Pistols": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=96",
-        "Revolvers": "https://www.gunbroker.com/Revolvers/search?Sort=13&PageSize=96",
-        "Semi-Auto Rifles": "https://www.gunbroker.com/Semi-Auto-Rifles/search?Sort=13&PageSize=96",
-        "Pump Shotguns": "https://www.gunbroker.com/Pump-Action-Shotguns/search?Sort=13&PageSize=96"
-    }
+    # Master Dispatch List: Defines what to scrape and whether it requires JS rendering
+    tasks = [
+        {"site": "GunBroker", "url": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=48", "js": False},
+        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True},
+        {"site": "Armslist", "url": "https://www.armslist.com/classifieds/search?category=handguns", "js": False},
+        {"site": "HiBid", "url": "https://hibid.com/lots?words=pistol", "js": True},
+        {"site": "TacSwap", "url": "https://www.tacswap.com/category/pistols", "js": True}
+    ]
     
-    print("Fetching broad GunBroker categories via ScraperAPI PREMIUM proxy (Parallel Execution)...")
+    print("Launching Omni-Platform Scraper via ScraperAPI PREMIUM...")
     
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        future_to_url = {executor.submit(scrape_gb_page, url, name): name for name, url in target_pages.items()}
-        for future in as_completed(future_to_url):
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_task = {executor.submit(scrape_target, t["site"], t["url"], t["js"]): t["site"] for t in tasks}
+        for future in as_completed(future_to_task):
             try:
                 result_lots = future.result()
                 if result_lots:
@@ -253,7 +303,7 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running category-wide inventory ingestion (LIVE DATA ONLY)...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running Omni-Platform Sync (LIVE DATA ONLY)...")
     
     live_items = live_scrape_all_platforms()
 
@@ -264,8 +314,6 @@ def main():
             unique_map[url] = item
     
     valid_lots = list(unique_map.values())
-    
-    # Sort by Massachusetts profit margin, highest first
     valid_lots.sort(key=lambda x: (x["ma_profit"], x["ma_margin"]), reverse=True)
 
     feed_payload = {
@@ -277,7 +325,7 @@ def main():
     with open(FEED_FILE, "w") as f:
         json.dump(feed_payload, f, indent=2)
 
-    print(f"SUCCESS: Feed populated with {len(valid_lots)} recognized, active listings.")
+    print(f"SUCCESS: Feed populated with {len(valid_lots)} recognized, cross-platform listings.")
 
 if __name__ == "__main__":
     main()
