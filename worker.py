@@ -27,7 +27,7 @@ PRE_BAN_TRIGGERS = ["pre-ban", "pre ban", "pre-94", "pre 94", "sporter match", "
 
 SITE_CONFIGS = {
     "GunBroker": {
-        "card_selector": "tr, div[data-item-id], .item-row, .tile, .listing",
+        "card_selector": "div[data-item-id], .item-row, .tile, .listing, article, tr",
         "link_filter": "/item/",
         "url_prefix": "https://www.gunbroker.com"
     },
@@ -100,14 +100,14 @@ def calculate_margins(src, title, ask_price, url):
         "listing_url": url
     }
 
-def fetch_html(target_url: str, render_js: bool) -> str:
+def fetch_html(target_url: str) -> str:
     try:
         if not SCRAPER_API_KEY:
             return ""
         payload = {
             "api_key": SCRAPER_API_KEY,
             "url": target_url,
-            "render": "true" if render_js else "false",
+            "render": "true",
             "premium": "true"
         }
         proxy_url = f"http://api.scraperapi.com?{urllib.parse.urlencode(payload)}"
@@ -118,10 +118,10 @@ def fetch_html(target_url: str, render_js: bool) -> str:
         print(f"Fetch error for {target_url}: {e}")
     return ""
 
-def scrape_target(site_name, task_url, render_js):
+def scrape_target(site_name, task_url):
     lots = []
     print(f"Executing task for {site_name}...")
-    html = fetch_html(task_url, render_js=render_js)
+    html = fetch_html(task_url)
     
     if html:
         soup = BeautifulSoup(html, "html.parser")
@@ -131,7 +131,7 @@ def scrape_target(site_name, task_url, render_js):
         
         for card in cards:
             txt = card.get_text(separator=" ", strip=True)
-            if len(txt) < 10:
+            if len(txt) < 15:
                 continue
                 
             target_a = None
@@ -149,12 +149,12 @@ def scrape_target(site_name, task_url, render_js):
             href = target_a.get("href", "")
             raw_title = target_a.get_text(strip=True)
             
-            if len(raw_title) < 4:
+            if len(raw_title) < 5:
                 h_tag = card.select_one("h2, h3, h4, h5, span")
                 if h_tag:
                     raw_title = h_tag.get_text(strip=True)
                     
-            if len(raw_title) < 4:
+            if len(raw_title) < 5:
                 continue
 
             title_str = clean_title(raw_title)
@@ -186,16 +186,18 @@ def scrape_target(site_name, task_url, render_js):
     return lots
 
 def main():
-    print(f"\n[{datetime.now().strftime('%H:%M:%Snarrator')}] Starting Robust Scrape...")
+    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Multi-Platform Scrape...")
     lots = []
+    
+    # Using GunBroker's direct general firearm category search URL with pagination
     tasks = [
-        {"site": "GunBroker", "url": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=48", "js": True},
-        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True}
+        {"site": "GunBroker", "url": "https://www.gunbroker.com/All/search?Keywords=pistol&Sort=13&PageSize=48"},
+        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used"}
     ]
     
     for t in tasks:
         try:
-            res = scrape_target(t["site"], t["url"], t["js"])
+            res = scrape_target(t["site"], t["url"])
             if res:
                 lots.extend(res)
         except Exception as e:
