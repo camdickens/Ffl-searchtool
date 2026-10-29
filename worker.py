@@ -18,7 +18,7 @@ SOLD_REJECT_TERMS = [
     "won", "completed", "archive", "archived", "time left: 0", "item ended"
 ]
 
-# Master Triangulated Valuation Matrix (Massively Expanded)
+# Master Triangulated Valuation Matrix
 MULTI_SOURCE_VALUATIONS = {
     # COLT
     "colt python": {"gb_sold": 1420.0, "gc_retail": 1495.0, "ga_comp": 1450.0},
@@ -165,7 +165,7 @@ def calculate_margins(src, title, ask_price, url, status_text="Active"):
     }
 
 def fetch_html(target_url: str, render_js: bool = False, use_premium: bool = False) -> str:
-    """Uses ScraperAPI Premium Residential routing to smash through Cloudflare checks."""
+    """Uses ScraperAPI Premium Residential routing."""
     try:
         if not SCRAPER_API_KEY:
             print("Missing API Key")
@@ -179,7 +179,6 @@ def fetch_html(target_url: str, render_js: bool = False, use_premium: bool = Fal
         }
         proxy_url = f"http://api.scraperapi.com?{urllib.parse.urlencode(payload)}"
         
-        # Hard timeout of 45s for residential proxies
         resp = requests.get(proxy_url, timeout=45)
         
         if resp.status_code == 200:
@@ -211,31 +210,12 @@ def scrape_gb_keyword(kw):
                     if lot: lots.append(lot)
     return lots
 
-def get_guaranteed_active_inventory():
-    """Fallback individual listings to ensure the app is never empty."""
-    catalog = [
-        ("GunBroker", "Colt Sporter Target Model .223 Pre-Ban AR-15", 876.0, "https://www.gunbroker.com/item/1085023910"),
-        ("GunBroker", "Colt 1911 Gold Cup Lite 5in SS .45ACP", 745.0, "https://www.gunbroker.com/item/1085023911"),
-        ("GunBroker", "Smith & Wesson Model 629-6 Deluxe .44 Mag", 770.0, "https://www.gunbroker.com/item/1085023912"),
-        ("HiBid", "Smith & Wesson Model 28-2 Highway Patrolman .357", 480.0, "https://hibid.com/lot/219842104/smith-and-wesson-model-28-2-357-magnum"),
-        ("Armslist", "Glock 19 Gen 3 Complete Frame (MA Transferable)", 260.0, "https://www.armslist.com/posts/14982103/massachusetts-handguns-for-sale--glock-19-gen-3-frame"),
-        ("Guns.com", "Smith & Wesson Model 686-6 .357 Magnum 4in", 689.99, "https://www.guns.com/firearms/handguns/revolvers/smith-and-wesson-686-6-357-mag-used-item-1194821")
-    ]
-    lots = []
-    for src, title, price, url in catalog:
-        lot = calculate_margins(src, title, price, url, "Active")
-        if lot:
-            lots.append(lot)
-    return lots
-
 def live_scrape_all_platforms():
     lots = []
-    # Test keywords for the parallel pool
     keywords = ["glock", "colt", "sig+sauer", "ruger"]
     
     print("Fetching GunBroker via ScraperAPI PREMIUM proxy (Parallel Execution)...")
     
-    # Launch all requests at exactly the same time
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_url = {executor.submit(scrape_gb_keyword, kw): kw for kw in keywords}
         for future in as_completed(future_to_url):
@@ -249,13 +229,9 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running parallel inventory sync with PREMIUM proxies...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running parallel inventory sync (LIVE DATA ONLY)...")
     
     live_items = live_scrape_all_platforms()
-    
-    if len(live_items) == 0:
-        print("Live scrape returned 0 items. Deploying guaranteed active baseline inventory...")
-        live_items = get_guaranteed_active_inventory()
 
     unique_map = {}
     for item in live_items:
@@ -275,7 +251,7 @@ def main():
     with open(FEED_FILE, "w") as f:
         json.dump(feed_payload, f, indent=2)
 
-    print(f"SUCCESS: Feed populated with {len(valid_lots)} active listings.")
+    print(f"SUCCESS: Feed populated with {len(valid_lots)} purely live, active listings.")
 
 if __name__ == "__main__":
     main()
