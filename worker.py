@@ -78,6 +78,8 @@ def extract_multi_source_valuation(title: str):
     is_pre = any(trig in t_lower for trig in PRE_BAN_TRIGGERS)
     matched_make = "General"
     matched_model = "Unknown"
+    
+    # Baseline for items not found in our matrix
     v_dict = {"gb_sold": 550.0, "gc_retail": 610.0, "ga_comp": 580.0}
 
     for key, val_sources in MULTI_SOURCE_VALUATIONS.items():
@@ -162,46 +164,55 @@ def scrape_target(site_name, task_url, render_js):
         
         dropped_noprice = 0
         dropped_sold = 0
+        dropped_notitle = 0
         
         for card in cards:
+            # Bulletproof cleanup to handle weird web formatting spaces
             txt = card.get_text(separator=" ", strip=True)
+            txt_clean = re.sub(r'\s+', ' ', txt)
             
             title_node = card if site_name == "TacSwap" else card.select_one(config["title_selector"])
-            price_val = 0.0
-            price_node = card.select_one(config["price_selector"])
-            
-            if price_node:
-                match = re.search(r'\$?([\d,]+\.?\d*)', price_node.get_text())
-                if match: price_val = float(match.group(1).replace(",", ""))
-            else:
-                match = re.search(r'\$\s?([\d,]+\.?\d*)', txt)
-                if match: price_val = float(match.group(1).replace(",", ""))
-
             if not title_node:
+                dropped_notitle += 1
                 continue
                 
-            if price_val <= 0:
+            price_val = 0.0
+            
+            # Aggressive Price Regex: Looks for a dollar sign, ignores spaces, and captures the numbers/decimals
+            price_node = card.select_one(config["price_selector"])
+            search_text = price_node.get_text(separator=" ", strip=True) if price_node else txt_clean
+            
+            match = re.search(r'\$\s?([0-9,]+(?:\.[0-9]{1,2})?)', search_text)
+            if match:
+                price_val = float(match.group(1).replace(",", ""))
+                
+            if price_val <= 0.0:
                 dropped_noprice += 1
                 continue
                 
             href = title_node.get("href", "")
             link = f"{config['url_prefix']}{href}" if href.startswith("/") else href
-            title_str = title_node.get_text(strip=True) if site_name != "TacSwap" else txt[:50]
             
-            lot = calculate_margins(site_name, title_str, price_val, link, txt)
+            # Prevent empty titles if TacSwap card was just a picture
+            title_str = title_node.get_text(strip=True) if site_name != "TacSwap" else txt_clean[:60]
+            if not title_str:
+                title_str = "Unknown Listing"
+            
+            lot = calculate_margins(site_name, title_str, price_val, link, txt_clean)
             if lot: 
                 lots.append(lot)
             else:
                 dropped_sold += 1
                 
-        print(f"[{site_name}] Results: Kept {len(lots)} | Dropped (No Price): {dropped_noprice} | Dropped (Sold/Ended): {dropped_sold}")
+        print(f"[{site_name}] Results: Kept {len(lots)} | Dropped (No Price): {dropped_noprice} | Dropped (Sold/Ended): {dropped_sold} | Dropped (No Title): {dropped_notitle}")
     return lots
 
 def live_scrape_all_platforms():
     lots = []
     tasks = [
         {"site": "GunBroker", "url": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=48", "js": False},
-        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True}
+        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True},
+        {"site": "Armslist", "url": "https://www.armslist.com/classifieds/search?category=handguns", "js": False}
     ]
     
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -217,7 +228,7 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting Scrape...")
+    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Strict Live Scrape...")
     live_items = live_scrape_all_platforms()
 
     unique_map = {}
@@ -238,7 +249,7 @@ def main():
     with open(FEED_FILE, "w") as f:
         json.dump(feed_payload, f, indent=2)
 
-    print(f"SUCCESS: feed_data.json updated with {len(valid_lots)} total listings.")
+    print(f"SUCCESS: feed_data.json updated with {len(valid_lots)} listings.\n")
 
 if __name__ == "__main__":
     main()
