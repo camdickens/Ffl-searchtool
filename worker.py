@@ -146,6 +146,10 @@ def extract_multi_source_valuation(title: str):
                 matched_model = re.sub(r'[^a-zA-Z0-9\s]', '', t_lower.replace(m, "")).strip()[:15]
                 v_dict = {"gb_sold": 550.0, "gc_retail": 610.0, "ga_comp": 580.0}
                 break
+                
+    # If it falls all the way through, it stays as Make: "General", Model: "Unknown", with a baseline valuation
+    if matched_make == "General":
+        v_dict = {"gb_sold": 550.0, "gc_retail": 610.0, "ga_comp": 580.0}
 
     val_average = round((v_dict["gb_sold"] + v_dict["gc_retail"] + v_dict["ga_comp"]) / 3.0, 2)
     badge = "🔥 Pre-Ban Grandfathered" if is_pre else "Commercial Roster"
@@ -157,9 +161,8 @@ def calculate_margins(src, title, ask_price, url, status_text="Active"):
 
     make, model, val_sources, fed_avg, is_pre, badge = extract_multi_source_valuation(title)
     
-    # STRICT INTERNAL FILTER: Discard if brand is completely unrecognized
-    if make == "General":
-        return None
+    # --- BRAND FILTER REMOVED ---
+    # Items with make == "General" are now allowed through.
 
     prem_pct = 0.18 if src == "HiBid" else (0.035 if src == "GunBroker" else 0.0)
     shipping_ffl = 45.0 if src in ["HiBid", "GunBroker"] else 30.0
@@ -249,18 +252,17 @@ def scrape_target(site_name, task_url, render_js):
             # Universal Title Extraction
             title_node = None
             if site_name == "TacSwap":
-                title_node = card  # Tacswap links are the cards themselves
+                title_node = card
             else:
                 title_node = card.select_one(config["title_selector"])
                 
-            # Universal Price Extraction (Regex fallback for sites that hide price classes)
+            # Universal Price Extraction
             price_val = 0.0
             price_node = card.select_one(config["price_selector"])
             if price_node:
                 match = re.search(r'\$?([\d,]+\.?\d*)', price_node.get_text())
                 if match: price_val = float(match.group(1).replace(",", ""))
             else:
-                # Fallback: scan the whole card text for the first dollar amount
                 match = re.search(r'\$\s?([\d,]+\.?\d*)', txt)
                 if match: price_val = float(match.group(1).replace(",", ""))
 
