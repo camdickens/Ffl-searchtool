@@ -27,17 +27,14 @@ PRE_BAN_TRIGGERS = ["pre-ban", "pre ban", "pre-94", "pre 94", "sporter match", "
 
 SITE_CONFIGS = {
     "GunBroker": {
-        # Broad card selector targeting any potential listing container
-        "card_selector": "div[class*='item'], div[class*='listing'], div[class*='tile'], article, tr",
+        "card_selector": ".listing, .tile, .item-tile, div[class*='item']",
+        "link_filter": "/item/",
         "url_prefix": "https://www.gunbroker.com"
     },
     "Guns.com": {
-        "card_selector": "div[class*='product'], article, div[class*='card']",
+        "card_selector": ".productCard, .product-card, div[class*='productCard']",
+        "link_filter": "/firearms/",
         "url_prefix": "https://www.guns.com"
-    },
-    "Armslist": {
-        "card_selector": "div[class*='card'], div[class*='listing'], article",
-        "url_prefix": "https://www.armslist.com"
     }
 }
 
@@ -117,36 +114,46 @@ def fetch_html(target_url: str, render_js: bool, use_premium: bool = True) -> st
 
 def scrape_target(site_name, task_url, render_js):
     lots = []
-    print(f"Executing universal task for {site_name}...")
+    print(f"Executing task for {site_name}...")
     html = fetch_html(task_url, render_js=render_js, use_premium=True)
     
     if html:
         soup = BeautifulSoup(html, "html.parser")
         config = SITE_CONFIGS[site_name]
         cards = soup.select(config["card_selector"])
-        print(f"[{site_name}] Found {len(cards)} potential card containers.")
+        print(f"[{site_name}] Found {len(cards)} item cards.")
         
         for card in cards:
             txt = card.get_text(separator=" ", strip=True)
-            if len(txt) < 15: # Skip tiny container elements
+            if len(txt) < 15:
                 continue
                 
-            # Universal Link & Title Extraction: Find the best anchor tag in the card
-            a_tag = card.select_one("a[href]")
-            if not a_tag:
+            # Find an anchor tag whose href contains the site's unique product path identifier
+            target_a = None
+            for a in card.find_all("a", href=True):
+                if config["link_filter"] in a["href"]:
+                    target_a = a
+                    break
+            
+            # Fallback if specific filter wasn't caught in the card
+            if not target_a:
+                target_a = card.select_one("a[href]")
+                
+            if not target_a:
                 continue
                 
-            title_str = a_tag.get_text(strip=True)
+            href = target_a.get("href", "")
+            title_str = target_a.get_text(strip=True)
+            
             if len(title_str) < 5:
-                # Fallback to header tags if anchor text is just an image/icon
                 h_tag = card.select_one("h2, h3, h4, h5, span")
                 if h_tag:
                     title_str = h_tag.get_text(strip=True)
-            
+                    
             if len(title_str) < 5:
                 continue
 
-            # Universal Price Extraction: Scan the entire card text for any dollar amount
+            # Extract Price securely from card text
             price_val = 0.0
             match = re.search(r'\$\s?([0-9,]+(?:\.[0-9]{1,2})?)', txt)
             if match:
@@ -155,28 +162,29 @@ def scrape_target(site_name, task_url, render_js):
                 except ValueError:
                     pass
                 
-            # Filter out unrealistic prices (too low to be a gun, or zero)
             if price_val < 50.0:
                 continue
                 
-            href = a_tag.get("href", "")
+            # Construct Clean Absolute URL
             if href.startswith("http"):
                 link = href
+            elif href.startswith("/"):
+                link = f"{config['url_prefix']}{href}"
             else:
-                link = f"{config['url_prefix']}{href}" if href.startswith("/") else f"{config['url_prefix']}/{href}"
+                link = f"{config['url_prefix']}/{href}"
             
             lot = calculate_margins(site_name, title_str, price_val, link)
             if lot: 
-                print(f"  -> KEPT [{site_name}]: {title_str[:40]}... | Price: ${price_val}")
+                print(f"  -> KEPT [{site_name}]: {title_str[:35]}... | ${price_val} | Link: {link}")
                 lots.append(lot)
                 
-        print(f"[{site_name}] Successfully extracted {len(lots)} listings.")
+        print(f"[{site_name}] Successfully extracted {len(lots)} clean listings.")
     return lots
 
 def live_scrape_all_platforms():
     lots = []
     tasks = [
-        {"site": "GunBroker", "url": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=48", "js": False},
+        {"site": "GunBroker", "url": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=48", "js": True},
         {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used", "js": True}
     ]
     
@@ -193,7 +201,7 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Universal Scrape...")
+    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Clean Scrape...")
     live_items = live_scrape_all_platforms()
 
     unique_map = {}
@@ -214,7 +222,7 @@ def main():
     with open(FEED_FILE, "w") as f:
         json.dump(feed_payload, f, indent=2)
 
-    print(f"SUCCESS: feed_data.json updated with {len(valid_lots)} listings.\n")
+    print(f"SUCCESS: feed_data.json updated with {len(valid_lots)} verified listings.\n")
 
 if __name__ == "__main__":
     main()
