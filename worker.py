@@ -90,9 +90,10 @@ def extract_multi_source_valuation(title: str):
     t_lower = title.lower()
     is_pre = any(trig in t_lower for trig in PRE_BAN_TRIGGERS)
     matched_make = "General"
-    matched_model = "Firearm"
-    v_dict = {"gb_sold": 520.0, "gc_retail": 580.0, "ga_comp": 550.0}
+    matched_model = "Unknown"
+    v_dict = {"gb_sold": 0.0, "gc_retail": 0.0, "ga_comp": 0.0}
 
+    # Step 1: Look for exact model matches in the dictionary
     for key, val_sources in MULTI_SOURCE_VALUATIONS.items():
         if key in t_lower:
             parts = key.split(" ", 1)
@@ -101,6 +102,7 @@ def extract_multi_source_valuation(title: str):
             v_dict = val_sources
             break
 
+    # Step 2: Look for broad brand matches if no specific model was found
     if matched_make == "General":
         brand_list = [
             "colt", "glock", "smith & wesson", "s&w", "sig sauer", "ruger", 
@@ -123,6 +125,10 @@ def calculate_margins(src, title, ask_price, url, status_text="Active"):
         return None
 
     make, model, val_sources, fed_avg, is_pre, badge = extract_multi_source_valuation(title)
+    
+    # STRICT INTERNAL FILTER: If we don't recognize the brand, drop it entirely.
+    if make == "General":
+        return None
 
     prem_pct = 0.18 if src == "HiBid" else (0.035 if src == "GunBroker" else 0.0)
     shipping_ffl = 45.0 if src in ["HiBid", "GunBroker"] else 30.0
@@ -190,22 +196,18 @@ def fetch_html(target_url: str, render_js: bool = False, use_premium: bool = Fal
         
     return ""
 
-def scrape_gb_keyword(kw):
-    """Worker function for parallel GunBroker scraping with diagnostic output."""
+def scrape_gb_page(url, category_name):
+    """Worker function for parallel category scraping."""
     lots = []
-    url = f"https://www.gunbroker.com/All/search?Keywords={kw}&Sort=1&PageSize=48&Tab=1"
-    
-    # Trying with JS rendering enabled to rule out dynamic loading
     html = fetch_html(url, render_js=True, use_premium=True)
     
     if html:
-        print(f"\n--- HTML SNIPPET FOR {kw} ---")
-        print(html[:500])
-        print("-----------------------------\n")
+        print(f"\n--- HTML SNIPPET FOR {category_name} ---")
+        print(html[:200]) # Shorter snippet to keep logs clean
         
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.select(".listing, .tile, .item-tile")
-        print(f"Found {len(cards)} item cards for '{kw}'")
+        print(f"Found {len(cards)} total items on {category_name} page")
         
         for card in cards:
             txt = card.get_text()
@@ -217,17 +219,29 @@ def scrape_gb_keyword(kw):
                 match = re.search(r'\$?([\d,]+\.?\d*)', price_node.get_text())
                 if match:
                     lot = calculate_margins("GunBroker", title_node.get_text(strip=True), float(match.group(1).replace(",", "")), link, txt)
-                    if lot: lots.append(lot)
+                    # The internal filter: Only append if calculate_margins returned a valid dictionary (i.e. brand was recognized)
+                    if lot: 
+                        lots.append(lot)
+                        
+        print(f"Filtered {category_name} down to {len(lots)} recognized, relevant firearms.\n")
     return lots
 
 def live_scrape_all_platforms():
     lots = []
-    keywords = ["glock", "colt", "sig+sauer", "ruger"]
     
-    print("Fetching GunBroker via ScraperAPI PREMIUM proxy (Parallel Execution)...")
+    # Sort=13 is "Newly Listed" on GunBroker (great for snagging fresh Buy It Now deals)
+    # PageSize=96 maximizes the number of listings we pull per proxy request
+    target_pages = {
+        "Pistols": "https://www.gunbroker.com/Pistols/search?Sort=13&PageSize=96",
+        "Revolvers": "https://www.gunbroker.com/Revolvers/search?Sort=13&PageSize=96",
+        "Semi-Auto Rifles": "https://www.gunbroker.com/Semi-Auto-Rifles/search?Sort=13&PageSize=96",
+        "Pump Shotguns": "https://www.gunbroker.com/Pump-Action-Shotguns/search?Sort=13&PageSize=96"
+    }
     
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_url = {executor.submit(scrape_gb_keyword, kw): kw for kw in keywords}
+    print("Fetching broad GunBroker categories via ScraperAPI PREMIUM proxy (Parallel Execution)...")
+    
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_url = {executor.submit(scrape_gb_page, url, name): name for name, url in target_pages.items()}
         for future in as_completed(future_to_url):
             try:
                 result_lots = future.result()
@@ -239,7 +253,7 @@ def live_scrape_all_platforms():
     return lots
 
 def main():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running parallel inventory sync (LIVE DATA ONLY, DIAGNOSTICS ENABLED)...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Running category-wide inventory ingestion (LIVE DATA ONLY)...")
     
     live_items = live_scrape_all_platforms()
 
@@ -250,6 +264,8 @@ def main():
             unique_map[url] = item
     
     valid_lots = list(unique_map.values())
+    
+    # Sort by Massachusetts profit margin, highest first
     valid_lots.sort(key=lambda x: (x["ma_profit"], x["ma_margin"]), reverse=True)
 
     feed_payload = {
@@ -261,8 +277,7 @@ def main():
     with open(FEED_FILE, "w") as f:
         json.dump(feed_payload, f, indent=2)
 
-    print(f"SUCCESS: Feed populated with {len(valid_lots)} purely live, active listings.")
+    print(f"SUCCESS: Feed populated with {len(valid_lots)} recognized, active listings.")
 
 if __name__ == "__main__":
     main()
-    
