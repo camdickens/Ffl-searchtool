@@ -29,12 +29,20 @@ SITE_CONFIGS = {
     "GunBroker": {
         "card_selector": "div[data-item-id], .item-row, .tile, .listing, article, tr",
         "link_filter": "/item/",
-        "url_prefix": "https://www.gunbroker.com"
+        "url_prefix": "https://www.gunbroker.com",
+        "render_js": True
     },
     "Guns.com": {
         "card_selector": ".productCard, .product-card, div[class*='productCard']",
         "link_filter": "/firearms/",
-        "url_prefix": "https://www.guns.com"
+        "url_prefix": "https://www.guns.com",
+        "render_js": True
+    },
+    "Classic Firearms": {
+        "card_selector": ".product-item, .product-card, div[class*='product-item']",
+        "link_filter": "/firearms/",
+        "url_prefix": "https://www.classicfirearms.com",
+        "render_js": False
     }
 }
 
@@ -100,14 +108,14 @@ def calculate_margins(src, title, ask_price, url):
         "listing_url": url
     }
 
-def fetch_html(target_url: str) -> str:
+def fetch_html(target_url: str, render_js: bool) -> str:
     try:
         if not SCRAPER_API_KEY:
             return ""
         payload = {
             "api_key": SCRAPER_API_KEY,
             "url": target_url,
-            "render": "true",
+            "render": "true" if render_js else "false",
             "premium": "true"
         }
         proxy_url = f"http://api.scraperapi.com?{urllib.parse.urlencode(payload)}"
@@ -121,11 +129,11 @@ def fetch_html(target_url: str) -> str:
 def scrape_target(site_name, task_url):
     lots = []
     print(f"Executing task for {site_name}...")
-    html = fetch_html(task_url)
+    config = SITE_CONFIGS[site_name]
+    html = fetch_html(task_url, render_js=config["render_js"])
     
     if html:
         soup = BeautifulSoup(html, "html.parser")
-        config = SITE_CONFIGS[site_name]
         cards = soup.select(config["card_selector"])
         print(f"[{site_name}] Found {len(cards)} item cards/rows.")
         
@@ -186,22 +194,24 @@ def scrape_target(site_name, task_url):
     return lots
 
 def main():
-    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Multi-Platform Scrape...")
+    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting Expanded Multi-Platform Scrape...")
     lots = []
     
-    # Using GunBroker's direct general firearm category search URL with pagination
     tasks = [
         {"site": "GunBroker", "url": "https://www.gunbroker.com/All/search?Keywords=pistol&Sort=13&PageSize=48"},
-        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used"}
+        {"site": "Guns.com", "url": "https://www.guns.com/firearms/handguns?condition=used"},
+        {"site": "Classic Firearms", "url": "https://www.classicfirearms.com/firearms/handguns/"}
     ]
     
-    for t in tasks:
-        try:
-            res = scrape_target(t["site"], t["url"])
-            if res:
-                lots.extend(res)
-        except Exception as e:
-            print(f"Error scraping {t['site']}: {e}")
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_to_task = {executor.submit(scrape_target, t["site"], t["url"]): t["site"] for t in tasks}
+        for future in as_completed(future_to_task):
+            try:
+                res = future.result()
+                if res:
+                    lots.extend(res)
+            except Exception as e:
+                print(f"Exception in worker thread: {e}")
 
     unique_map = {}
     for item in lots:
@@ -221,7 +231,7 @@ def main():
     try:
         with open(FEED_FILE, "w") as f:
             json.dump(feed_payload, f, indent=2)
-        print(f"SUCCESS: feed_data.json updated with {len(valid_lots)} verified listings.\n")
+        print(f"SUCCESS: feed_data.json updated with {len(valid_lots)} verified multi-platform listings.\n")
     except Exception as e:
         print(f"Failed to write feed file: {e}")
 
