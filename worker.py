@@ -289,7 +289,7 @@ def finalize_lot(lot: dict, fed_avg: float, basis: str, is_pre: bool, val_source
         lot["ma_profit"] = ma_profit
         lot["ma_margin"] = round((ma_profit / ma_avg) * 100, 1) if ma_avg > 0 else 0.0
         lot["federal_profit"] = round(fed_avg - landed, 2)
-        lot["compliance_badge"] = "Pre-Ban Grandfathered" if is_pre else (("Retail ref" if lot.get("condition") == "new" else "Sold comps") if basis == "table" else ("New comps" if lot.get("condition") == "new" else "Used comps"))
+        lot["compliance_badge"] = "Pre-Ban Grandfathered" if is_pre else ("70% of new" if basis == "newfallback" else (("Retail ref" if lot.get("condition") == "new" else "Sold comps") if basis == "table" else ("New comps" if lot.get("condition") == "new" else "Used comps")))
     else:
         lot["ma_retail"] = lot["ma_profit"] = lot["ma_margin"] = lot["federal_profit"] = 0.0
         lot["compliance_badge"] = "Unvalued"
@@ -331,18 +331,25 @@ def caliber_key(cal: str) -> str:
     return base + ("mm" if "mm" in (cal or "").lower() else "")
 
 
-def model_key(lot: dict) -> str:
+def model_key(lot: dict, cond: str = "") -> str:
     make = re.sub(r"[^a-z0-9]", "", str(lot.get("make", "")).lower())
     mtxt = re.sub(r"\bgen\.?\s?\d\b", " ", str(lot.get("model", "")).lower())
     toks = re.findall(r"[a-z0-9][a-z0-9\-\.&/]*", mtxt)
     toks = [t for t in toks if t not in ("unknown", "model")][:3]
     if not make or not toks:
         return ""
-    return make + "|" + " ".join(toks) + "|" + caliber_key(lot.get("caliber", "")) + "|" + str(lot.get("condition", "used"))
+    return make + "|" + " ".join(toks) + "|" + caliber_key(lot.get("caliber", "")) + "|" + (cond or str(lot.get("condition", "used")))
+
+
+USED_FROM_NEW_FACTOR = 0.70
 
 
 def apply_peer_comps(lots):
-    """Value unvalued listings with the median price of OTHER listings of the same make and model."""
+    """Value unvalued listings from other listings of the same make and model.
+
+    Used guns are compared with other used guns. If no used comps exist, fall back to 70% of the median
+    price of the same model sold new. New guns are only compared with new guns.
+    """
     groups = {}
     for l in lots:
         k = model_key(l)
@@ -350,6 +357,7 @@ def apply_peer_comps(lots):
         if k and price and price >= 50:
             groups.setdefault(k, []).append((l["listing_url"], price))
     valued = 0
+    fallback = 0
     for l in lots:
         if l.get("federal_retail", 0) > 0:
             continue
@@ -360,7 +368,15 @@ def apply_peer_comps(lots):
             finalize_lot(l, comp, "peer", l.get("is_pre_ban", False),
                          val_sources={"peer_median": comp, "peer_count": len(peers)})
             valued += 1
-    print(f"Peer comps applied to {valued} listings.")
+            continue
+        if l.get("condition") == "used":
+            new_peers = [p for (u, p) in groups.get(model_key(l, "new"), []) if u != l["listing_url"]]
+            if new_peers:
+                new_med = round(statistics.median(new_peers), 2)
+                finalize_lot(l, round(new_med * USED_FROM_NEW_FACTOR, 2), "newfallback", l.get("is_pre_ban", False),
+                             val_sources={"new_median": new_med, "factor": USED_FROM_NEW_FACTOR, "peer_count": len(new_peers)})
+                fallback += 1
+    print(f"Peer comps applied to {valued} listings; 70%-of-new fallback on {fallback}.")
 
 
 # ---------- GunBroker official API ----------
