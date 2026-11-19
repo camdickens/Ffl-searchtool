@@ -848,8 +848,19 @@ def web_search(query):
         m = re.search(r"(?:https?://)?([a-z0-9][a-z0-9.-]*\.[a-z]{2,})", str(s or "").lower())
         return m.group(1).replace("www.", "") if m else ""
 
+    def direct_url(s):
+        m = re.match(r"\s*(https?://[^\s\u203a>]+)(.*)", str(s or ""))
+        if not m:
+            return ""
+        parts = [p.strip() for p in m.group(2).split("\u203a") if p.strip()]
+        if any("\u2026" in p or "..." in p for p in parts):
+            parts = []
+        return m.group(1).rstrip("/") + ("/" + "/".join(p.replace(" ", "-") for p in parts) if parts else "")
+
     def add(title, link, snippet, price_hint, hint=""):
         link = str(link or "").strip()
+        if "google." in (urlparse(link).netloc or "").lower():
+            link = direct_url(hint) or link
         title = str(title or "").strip()
         if not link.lower().startswith(("http://", "https://")) or not title:
             return
