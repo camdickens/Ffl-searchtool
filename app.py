@@ -322,7 +322,7 @@ filtered_lots.sort(key=_key, reverse=_rev)
 
 # ---------------- HEADER ----------------
 st.markdown(
-    f"""<div class="hero"><div><h1>{ui_art.CROSSHAIR_ICON}FFL Deal Radar<span class="pill">● LIVE</span></h1><div class="sub">{esc(mode)} &nbsp;•&nbsp; Last updated {esc(feed.get('last_updated', 'just now'))} &nbsp;•&nbsp; refreshed every 2 hours &nbsp;•&nbsp; {len(filtered_lots)} of {len(all_lots)} listings shown</div></div>{HERO_ART}</div>""",
+    f"""<div class="hero"><div><h1>{ui_art.CROSSHAIR_ICON}FFL Deal Radar<span class="pill">● LIVE</span></h1><div class="sub">{esc(mode)} &nbsp;•&nbsp; Last updated {esc(feed.get('last_updated', 'just now'))} &nbsp;•&nbsp; refreshed every 3 hours &nbsp;•&nbsp; {len(filtered_lots)} of {len(all_lots)} listings shown</div></div>{HERO_ART}</div>""",
     unsafe_allow_html=True,
 )
 
@@ -481,7 +481,7 @@ with tab_sys:
         st.write("**Listings per source (last run):** " + ", ".join(f"{k}: {v}" for k, v in per_source.items()))
     unvalued = sum(1 for l in all_lots if not l["valued"])
     st.write(f"**Unvalued listings:** {unvalued} of {len(all_lots)} (no comparable listings found yet)")
-    st.caption("The feed is refreshed every 2 hours by a GitHub Actions workflow.")
+    st.caption("The feed is refreshed every 3 hours by a GitHub Actions workflow.")
     if st.button("🔄 Force immediate re-sync"):
         try:
             import worker
