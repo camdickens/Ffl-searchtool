@@ -1,112 +1,57 @@
-import pandas as pd
+import os
+import json
+import subprocess
+import threading
+from datetime import datetime
 import streamlit as st
 
-st.set_page_config(page_title="Inventory Review", layout="wide")
+@@ -36,15 +37,18 @@
+st.session_state.authenticated = False
+st.rerun()
 
-REQUIRED_COLUMNS = ["sku", "description", "quantity"]
+# --- BACKGROUND TRIGGER HANDLING ---
+# --- NON-BLOCKING BACKGROUND TRIGGER HANDLING ---
+query_params = st.query_params
+if query_params.get("task") == "scrape" and query_params.get("token") == "DEALER2026":
+    st.sidebar.info("Triggering background sync...")
+    try:
+        subprocess.run(["python", "worker.py"], check=True)
+        st.sidebar.success("Sync completed successfully!")
+    except Exception as e:
+        st.sidebar.error(f"Sync failed: {e}")
+    def run_async_worker():
+        try:
+            subprocess.run(["python", "worker.py"], check=True)
+        except Exception as e:
+            print(f"Async worker error: {e}")
 
+    # Fire off worker asynchronously so cron-job.org gets an instant 200 OK without timeout
+    threading.Thread(target=run_async_worker, daemon=True).start()
+    st.sidebar.info("Background sync task initiated asynchronously.")
 
-def review_inventory(uploaded):
-    inventory = pd.read_csv(
-        uploaded,
-        dtype="string",
-        keep_default_na=False,
-        encoding="utf-8-sig",
-    )
-
-    inventory.columns = inventory.columns.str.strip()
-    if inventory.columns.duplicated().any():
-        raise ValueError("Column names must be unique after trimming whitespace.")
-
-    missing = [column for column in REQUIRED_COLUMNS if column not in inventory.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {', '.join(missing)}.")
-
-    inventory = inventory[REQUIRED_COLUMNS].copy()
-    for column in REQUIRED_COLUMNS:
-        inventory[column] = inventory[column].str.strip()
-
-    # Validate as text to preserve leading zeros in SKUs and avoid rounding quantities.
-    valid_quantity = inventory["quantity"].str.fullmatch(r"[0-9]+", na=False)
-
-    issues = [[] for _ in range(len(inventory))]
-    checks = [
-        (inventory["sku"].eq(""), "Missing SKU"),
-        (inventory["description"].eq(""), "Missing description"),
-        (~valid_quantity, "Quantity must be a non-negative whole number"),
-    ]
-
-    for mask, message in checks:
-        for position, flagged in enumerate(mask):
-            if flagged:
-                issues[position].append(message)
-
-    inventory["Review reason"] = ["; ".join(messages) for messages in issues]
-    needs_review = inventory["Review reason"].ne("")
-
-    return (
-        inventory.loc[~needs_review, REQUIRED_COLUMNS],
-        inventory.loc[needs_review],
-    )
-
-
-st.title("Inventory Review")
-
-if not st.user.is_logged_in:
-    st.info("Sign in with your organization account to upload inventory.")
-    if st.button("Sign in"):
-        st.login()
-    st.stop()
-
-# Fail closed: signing in is not enough; the account must also be approved.
-allowed_emails = {
-    email.strip().casefold()
-    for email in st.secrets.get("inventory_access", {}).get("allowed_emails", [])
-}
-user_email = str(st.user.get("email") or "").strip().casefold()
-
-with st.sidebar:
-    if st.button("Sign out"):
-        st.logout()
-
-if not user_email or user_email not in allowed_emails:
-    st.error("This account is not approved to access the inventory dashboard.")
-    st.stop()
-
-uploaded = st.file_uploader("Upload a store inventory CSV", type=["csv"])
-st.caption("Required columns: sku, description, quantity. Use UTF-8 encoding.")
-
-if uploaded is None:
-    st.stop()
-
-try:
-    accepted, review = review_inventory(uploaded)
-except pd.errors.EmptyDataError:
-    st.error("The file is empty. Upload a CSV with a header and inventory rows.")
-    st.stop()
-except (pd.errors.ParserError, UnicodeDecodeError):
-    st.error("Could not read the file. Check that it is a valid UTF-8 CSV.")
-    st.stop()
-except ValueError as error:
-    st.error(str(error))
-    st.stop()
-
-total = len(accepted) + len(review)
-if total == 0:
-    st.info("The CSV has the required headers but contains no inventory rows.")
-    st.stop()
-
-uploaded_metric, accepted_metric, review_metric = st.columns(3)
-uploaded_metric.metric("Rows uploaded", total)
-accepted_metric.metric("Rows accepted", len(accepted))
-review_metric.metric("Rows needing review", len(review))
-
-if not review.empty:
-    st.subheader("Rows needing review")
-    st.dataframe(review, hide_index=True, height=250)
-
-st.subheader("Accepted inventory")
-if accepted.empty:
-    st.info("No rows passed validation.")
-else:
-    st.dataframe(accepted, hide_index=True, height=400)
+# --- LOAD FEED DATA ---
+def load_feed():
+@@ -105,23 +109,18 @@ def load_feed():
+# --- APPLY FILTERS ---
+filtered_lots = []
+for lot in lots:
+    # Source filter
+if selected_source != "All" and lot.get("source_site") != selected_source:
+continue
+    # Pre-ban filter
+if pre_ban_only and not lot.get("is_pre_ban", False):
+continue
+    # Search query filter
+if search_query:
+combined_text = f"{lot.get('make', '')} {lot.get('model', '')} {lot.get('title', '')}".lower()
+if search_query not in combined_text:
+continue
+    # Price limits
+if lot.get("total_landed_cost", 0) > max_landed:
+continue
+if lot.get("current_bid", 0) > max_ask:
+continue
+    # Profit threshold based on mode
+if market_mode == "MA FFL Roster & Arbitrage":
+if lot.get("ma_profit", 0) < min_profit:
+continue
