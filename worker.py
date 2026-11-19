@@ -246,12 +246,31 @@ def normalize_for_match(title: str) -> str:
     return t
 
 
-def table_valuation(title: str):
+USED_RE = re.compile(r"\b(used|pre-owned|preowned|police trade|trade-in|surplus|very good|excellent|like new|refurb|consignment|fair condition|good condition)\b", re.IGNORECASE)
+NEW_RE = re.compile(r"\b(new|nib|brand new|unfired)\b", re.IGNORECASE)
+NEW_SOURCES = {"Classic Firearms"}
+USED_ONLY_SOURCES = {"Guns.com", "Buds Gun Shop", "Sportsman's Outdoor Superstore"}
+
+
+def detect_condition(src: str, title: str) -> str:
+    """Return 'used' or 'new'. Used and new listings are only ever valued against their own kind."""
+    if src in USED_ONLY_SOURCES:
+        return "used"
+    if USED_RE.search(title or ""):
+        return "used"
+    if NEW_RE.search(title or ""):
+        return "new"
+    return "new" if src in NEW_SOURCES else "used"
+
+
+def table_valuation(title: str, condition: str = "used"):
+    """Hand-entered references: used guns use the sold price, new guns use the retail price."""
     t_lower = normalize_for_match(title)
     is_pre = any(trig in t_lower for trig in PRE_BAN_TRIGGERS)
     for key, vals in MULTI_SOURCE_VALUATIONS.items():
         if re.search(r"\b" + re.escape(key) + r"\b", t_lower):
-            return vals, round(sum(vals.values()) / 3.0, 2), is_pre
+            ref = vals["gc_retail"] if condition == "new" else vals["gb_sold"]
+            return vals, round(float(ref), 2), is_pre
     return None, 0.0, is_pre
 
 
@@ -270,7 +289,7 @@ def finalize_lot(lot: dict, fed_avg: float, basis: str, is_pre: bool, val_source
         lot["ma_profit"] = ma_profit
         lot["ma_margin"] = round((ma_profit / ma_avg) * 100, 1) if ma_avg > 0 else 0.0
         lot["federal_profit"] = round(fed_avg - landed, 2)
-        lot["compliance_badge"] = "Pre-Ban Grandfathered" if is_pre else ("Roster Model" if basis == "table" else "Peer comp")
+        lot["compliance_badge"] = "Pre-Ban Grandfathered" if is_pre else (("Retail ref" if lot.get("condition") == "new" else "Sold comps") if basis == "table" else ("New comps" if lot.get("condition") == "new" else "Used comps"))
     else:
         lot["ma_retail"] = lot["ma_profit"] = lot["ma_margin"] = lot["federal_profit"] = 0.0
         lot["compliance_badge"] = "Unvalued"
@@ -292,10 +311,11 @@ def build_lot(src, title, make, model, ask_price, url, caliber="", is_auction=Fa
         "current_bid": ask_price,
         "buy_now": buy_now,
         "is_auction": bool(is_auction),
+        "condition": detect_condition(src, title),
         "total_landed_cost": landed,
         "listing_url": url,
     }
-    vals, avg, is_pre = table_valuation(f"{make} {model} {title}")
+    vals, avg, is_pre = table_valuation(f"{make} {model} {title}", lot["condition"])
     if vals:
         finalize_lot(lot, avg, "table", is_pre, val_sources=vals)
     else:
@@ -318,7 +338,7 @@ def model_key(lot: dict) -> str:
     toks = [t for t in toks if t not in ("unknown", "model")][:3]
     if not make or not toks:
         return ""
-    return make + "|" + " ".join(toks) + "|" + caliber_key(lot.get("caliber", ""))
+    return make + "|" + " ".join(toks) + "|" + caliber_key(lot.get("caliber", "")) + "|" + str(lot.get("condition", "used"))
 
 
 def apply_peer_comps(lots):
