@@ -7,7 +7,7 @@ from datetime import datetime
 import streamlit as st
 import ui_art
 
-st.set_page_config(page_title="FFL Deal Radar", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="FFL Deal Radar", page_icon="🎯", layout="wide", initial_sidebar_state="collapsed")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FEED_FILE = os.path.join(BASE_DIR, "feed_data.json")
@@ -93,7 +93,7 @@ st.markdown(
     radial-gradient(800px 500px at 50% 120%, #0b3b2e 0%, transparent 60%), #080d17; }
 header[data-testid="stHeader"] { background: transparent; height: 2.4rem; }
 [data-testid="stToolbar"], [data-testid="stDecoration"], footer { display: none !important; }
-.block-container { padding: 2.6rem 1.2rem 1.5rem 1.2rem !important; max-width: 100% !important; }
+.block-container { padding: 0 1.2rem 1.5rem 1.2rem !important; max-width: 100% !important; }
 section[data-testid="stSidebar"] > div { background: linear-gradient(180deg,#0f172a 0%,#101a33 55%,#0c2a2a 100%); padding-top: 0.6rem; }
 div[data-testid="stVerticalBlock"] { gap: 0.55rem; }
 /* keep control columns on one row, even on phones */
@@ -102,7 +102,7 @@ div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important
 
 .hero { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:12px;
         background: linear-gradient(100deg,#0b1d3a 0%,#143a5e 38%,#0e5a4a 75%,#1b7a46 100%);
-        border:1px solid #2b4a6b; border-radius:16px; padding:10px 20px; margin-bottom:2px;
+        border:0; border-bottom:1px solid #2b4a6b; border-radius:0 0 18px 18px; padding:2.7rem 1.6rem 14px 1.6rem; margin:0 -1.2rem 4px -1.2rem;
         box-shadow: 0 8px 28px rgba(14,90,74,.28); }
 .hero:after { content:""; position:absolute; inset:0; pointer-events:none;
         background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.07) 50%, transparent 60%);
@@ -191,6 +191,10 @@ div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important
   .d-num { text-align:left; } .d-num .k { display:block; }
   .hero svg.hero-art { display:none; }
 }
+/* filters panel: wraps on small screens, looks like a card */
+div[data-testid="stExpander"] { border:1px solid #243049 !important; border-radius:14px !important; background:linear-gradient(160deg,#131c31 0%,#0e1526 100%); }
+div[data-testid="stExpander"] div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; align-items: flex-start; }
+div[data-testid="stExpander"] div[data-testid="stColumn"], div[data-testid="stExpander"] div[data-testid="column"] { min-width: 220px !important; flex: 1 1 220px !important; }
 button[data-baseweb="tab"] { padding: 4px 14px !important; }
 div[data-testid="stTabs"] { margin-top: -4px; }
 </style>
@@ -371,7 +375,10 @@ elif not email_verified:
 feed = get_feed()
 all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
 
-# ---------------- SIDEBAR FILTERS ----------------
+# ---------------- HEADER PLACEHOLDER (filled in after the filters run) ----------------
+hero_ph = st.empty()
+
+# ---------------- ACCOUNT (sidebar) ----------------
 with st.sidebar:
     st.markdown("### 🎯 FFL Radar")
     st.caption(f"Signed in as {user_email}")
@@ -382,36 +389,52 @@ with st.sidebar:
     if st.button("🚪 Sign out", use_container_width=True):
         st.logout()
 
-    mode = st.radio("Legal framework", ["Massachusetts Compliant", "Federal Standard"], horizontal=False)
+# ---------------- FILTERS (collapsible, directly under the header) ----------------
+present_sources = sorted({str(l.get("source_site")) for l in all_lots if l.get("source_site")})
+source_options = sorted(set(ALL_PLATFORMS) | set(present_sources))
+makes = sorted({str(l.get("make") or "").title() for l in all_lots if l.get("make")})
+calibers = sorted({str(l.get("caliber") or "").upper() for l in all_lots if l.get("caliber")})
+prices = [num(l.get("current_bid")) for l in all_lots]
+p_max = int(max(prices)) if prices else 5000
+p_max = max(100, int(math.ceil(p_max / 100.0) * 100))
+
+with st.expander("🎛️ Filters", expanded=True):
+    r1a, r1b, r1c, r1d = st.columns(4)
+    with r1a:
+        mode = st.radio("Legal framework", ["Massachusetts Compliant", "Federal Standard"], horizontal=False)
     is_ma = (mode == "Massachusetts Compliant")
+    with r1b:
+        selected_sources = st.multiselect("Source platforms", source_options, default=present_sources or source_options)
+    with r1c:
+        search_query = st.text_input("🔍 Search keyword", "").strip().lower()
+    with r1d:
+        selected_makes = st.multiselect("Brand / make", makes, default=[])
 
-    present_sources = sorted({str(l.get("source_site")) for l in all_lots if l.get("source_site")})
-    source_options = sorted(set(ALL_PLATFORMS) | set(present_sources))
-    selected_sources = st.multiselect("Source platforms", source_options, default=present_sources or source_options)
+    r2a, r2b, r2c, r2d = st.columns(4)
+    with r2a:
+        selected_calibers = st.multiselect("Caliber", calibers, default=[]) if calibers else []
+    with r2b:
+        listing_type = st.radio("Listing type", ["All", "Auctions", "Buy-It-Now"], horizontal=True)
+    with r2c:
+        condition_pick = st.radio("Condition", ["All", "Used", "New"], horizontal=True)
+    with r2d:
+        sort_by = st.selectbox("Sort by", ["Best net spread", "Highest margin", "Lowest price", "Highest price", "Source A-Z"])
 
-    search_query = st.text_input("🔍 Search keyword", "").strip().lower()
+    r3a, r3b, r3c = st.columns(3)
+    with r3a:
+        price_range = st.slider("Price range ($)", 0, p_max, (0, p_max), 25)
+    with r3b:
+        min_profit = st.slider("Min net spread ($)", -300, 800, -300, 25)
+    with r3c:
+        min_margin = st.slider("Min margin (%)", -100, 70, -100, 5)
 
-    makes = sorted({str(l.get("make") or "").title() for l in all_lots if l.get("make")})
-    selected_makes = st.multiselect("Brand / make", makes, default=[])
-
-    calibers = sorted({str(l.get("caliber") or "").upper() for l in all_lots if l.get("caliber")})
-    selected_calibers = st.multiselect("Caliber", calibers, default=[]) if calibers else []
-
-    listing_type = st.radio("Listing type", ["All", "Auctions", "Buy-It-Now"], horizontal=True)
-    condition_pick = st.radio("Condition", ["All", "Used", "New"], horizontal=True)
-
-    prices = [num(l.get("current_bid")) for l in all_lots]
-    p_max = int(max(prices)) if prices else 5000
-    p_max = max(100, int(math.ceil(p_max / 100.0) * 100))
-    price_range = st.slider("Price range ($)", 0, p_max, (0, p_max), 25)
-
-    min_profit = st.slider("Min net spread ($)", -300, 800, -300, 25)
-    min_margin = st.slider("Min margin (%)", -100, 70, -100, 5)
-    valued_only = st.checkbox("Valued listings only", value=False)
-    action_only = st.checkbox("Show 'BID' targets only", value=False)
-    pre_ban_only = st.checkbox("Pre-ban grandfathered only", value=False) if is_ma else False
-
-    sort_by = st.selectbox("Sort by", ["Best net spread", "Highest margin", "Lowest price", "Highest price", "Source A-Z"])
+    r4a, r4b, r4c = st.columns(3)
+    with r4a:
+        valued_only = st.checkbox("Valued listings only", value=False)
+    with r4b:
+        action_only = st.checkbox("Show 'BID' targets only", value=False)
+    with r4c:
+        pre_ban_only = st.checkbox("Pre-ban grandfathered only", value=False) if is_ma else False
 
 # ---------------- ENRICH ----------------
 for l in all_lots:
@@ -467,7 +490,7 @@ _key, _rev = sorters[sort_by]
 filtered_lots.sort(key=_key, reverse=_rev)
 
 # ---------------- HEADER ----------------
-st.markdown(
+hero_ph.markdown(
     f"""<div class="hero"><div><h1>{ui_art.CROSSHAIR_ICON}FFL Deal Radar<span class="pill">● LIVE</span></h1><div class="sub">{esc(mode)} &nbsp;•&nbsp; Last updated {esc(feed.get('last_updated', 'just now'))} &nbsp;•&nbsp; refreshed every 3 hours &nbsp;•&nbsp; {len(filtered_lots)} of {len(all_lots)} listings shown</div></div>{HERO_ART}</div>""",
     unsafe_allow_html=True,
 )
@@ -643,12 +666,3 @@ with tab_sys:
     unvalued = sum(1 for l in all_lots if not l["valued"])
     st.write(f"**Unvalued listings:** {unvalued} of {len(all_lots)} (no comparable listings found yet)")
     st.caption("The feed is refreshed every 3 hours by a GitHub Actions workflow.")
-    if st.button("🔄 Force immediate re-sync"):
-        try:
-            import worker
-            worker.main()
-            st.success("Synchronized! Reloading...")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Sync error: {e}")
-            st.code(traceback.format_exc())
