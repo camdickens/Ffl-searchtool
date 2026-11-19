@@ -55,7 +55,7 @@ def usd_signed(v):
 
 # Small original header illustration: pistol silhouette over target rings.
 HERO_ART = (
-    '<svg width="230" height="74" viewBox="0 0 330 105" xmlns="http://www.w3.org/2000/svg">'
+    '<svg class="hero-art" width="230" height="74" viewBox="0 0 330 105" xmlns="http://www.w3.org/2000/svg">'
     '<defs><linearGradient id="hm" x1="0" y1="0" x2="0" y2="1">'
     '<stop offset="0%" stop-color="#e2e8f0"/><stop offset="100%" stop-color="#64748b"/>'
     '</linearGradient></defs>'
@@ -83,66 +83,114 @@ EMPTY_ART = (
     '<div style="font-size:.78rem;color:#64748b">Loosen a filter or clear the search to see more.</div></div>'
 )
 
-# ---------------- STYLE: compact, dark, inline (no scroll windows) ----------------
+# ---------------- STYLE: colorful dark theme, everything inline (no scroll windows) ----------------
 st.markdown(
     """
 <style>
-header[data-testid="stHeader"] { display: none; }
-footer { visibility: hidden; }
-.block-container { padding: 0.6rem 1.4rem 0 1.4rem !important; max-width: 100% !important; }
-section[data-testid="stSidebar"] > div { padding-top: 0.6rem; }
-div[data-testid="stVerticalBlock"] { gap: 0.45rem; }
-.hero { display:flex; align-items:center; justify-content:space-between;
-        background: linear-gradient(90deg,#0f172a 0%,#1e293b 55%,#0b3b2e 100%);
-        border:1px solid #1f2a3c; border-radius:12px; padding:8px 18px; margin-bottom:4px; }
-.hero h1 { font-size:1.35rem; margin:0; padding:0; color:#f1f5f9; letter-spacing:.3px; }
-.hero .sub { color:#94a3b8; font-size:.78rem; }
-.pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem;
-        background:#14532d; color:#bbf7d0; margin-left:8px; }
-.kpi { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:8px 14px; position:relative; overflow:hidden; }
-.kpi:before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent,#38bdf8); }
-.kpi .lbl { color:#94a3b8; font-size:.70rem; text-transform:uppercase; letter-spacing:.8px; }
-.kpi .val { color:#f8fafc; font-size:1.45rem; font-weight:700; line-height:1.25; }
-.kpi .val.good { color:#22c55e; }
-.kpi .val.blue { color:#38bdf8; }
-.kpi .val.amber { color:#f59e0b; }
-.card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:10px 14px; }
-.card h4 { margin:0 0 8px 0; font-size:.8rem; color:#cbd5e1; font-weight:600; letter-spacing:.3px; }
-.dtbl { width:100%; border-collapse:separate; border-spacing:0; font-size:.8rem; table-layout:fixed;
-        background:#0f172a; border:1px solid #1f2937; border-radius:12px; overflow:hidden; }
-.dtbl th { text-align:left; color:#94a3b8; font-weight:600; font-size:.68rem; text-transform:uppercase;
-           letter-spacing:.6px; padding:8px 8px; background:#111827; border-bottom:1px solid #1f2937; }
-.dtbl td { padding:6px 8px; border-bottom:1px solid #162033; color:#e2e8f0; white-space:nowrap;
-           overflow:hidden; text-overflow:ellipsis; }
-.dtbl tr:last-child td { border-bottom:none; }
-.dtbl tr:hover td { background:#131d31; }
-.dtbl .gun { font-weight:600; }
-.dtbl .sm { color:#64748b; font-size:.7rem; font-weight:400; }
-.num { text-align:right; font-variant-numeric:tabular-nums; }
-.tag { display:inline-block; padding:1px 8px; border-radius:999px; font-size:.68rem; font-weight:600; }
-.t-bid { background:#14532d; color:#86efac; }
-.t-pass { background:#1f2937; color:#94a3b8; }
-.t-auc { background:#3b2a05; color:#fcd34d; }
-.t-bin { background:#0c2a3d; color:#7dd3fc; }
-.t-un { background:#1f2937; color:#94a3b8; }
-.t-val { background:#1e1b4b; color:#c4b5fd; }
-.pos { color:#22c55e; font-weight:600; }
-.neg { color:#ef4444; font-weight:600; }
-.mb { display:inline-block; vertical-align:middle; width:46px; height:6px; background:#1f2937; border-radius:4px; overflow:hidden; margin-right:6px; }
-.mf { height:100%; }
-.openbtn { color:#04130a !important; background:#22c55e; padding:2px 9px; border-radius:6px; font-weight:700;
-           font-size:.72rem; text-decoration:none; }
-.brow { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:.74rem; color:#cbd5e1; }
+.stApp { background:
+    radial-gradient(1100px 480px at 8% -8%, #0f3a4a 0%, transparent 60%),
+    radial-gradient(900px 420px at 100% 0%, #2a1a4d 0%, transparent 58%),
+    radial-gradient(800px 500px at 50% 120%, #0b3b2e 0%, transparent 60%), #080d17; }
+header[data-testid="stHeader"] { background: transparent; height: 2.4rem; }
+[data-testid="stToolbar"], [data-testid="stDecoration"], footer { display: none !important; }
+.block-container { padding: 2.6rem 1.2rem 1.5rem 1.2rem !important; max-width: 100% !important; }
+section[data-testid="stSidebar"] > div { background: linear-gradient(180deg,#0f172a 0%,#101a33 55%,#0c2a2a 100%); padding-top: 0.6rem; }
+div[data-testid="stVerticalBlock"] { gap: 0.55rem; }
+/* keep control columns on one row, even on phones */
+div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 0.5rem !important; align-items: center; }
+div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important; }
+
+.hero { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:12px;
+        background: linear-gradient(100deg,#0b1d3a 0%,#143a5e 38%,#0e5a4a 75%,#1b7a46 100%);
+        border:1px solid #2b4a6b; border-radius:16px; padding:10px 20px; margin-bottom:2px;
+        box-shadow: 0 8px 28px rgba(14,90,74,.28); }
+.hero:after { content:""; position:absolute; inset:0; pointer-events:none;
+        background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.07) 50%, transparent 60%);
+        background-size: 250% 100%; animation: sheen 7s linear infinite; }
+@keyframes sheen { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+.hero h1 { font-size:1.45rem; margin:0; padding:0; color:#f8fafc; letter-spacing:.3px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.hero .sub { color:#b6c8dd; font-size:.78rem; margin-top:2px; }
+.hero svg.hero-art { flex:0 0 auto; max-width:34%; height:auto; }
+.pill { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:.7rem;
+        background:#052e1a; color:#86efac; border:1px solid #166534; }
+.pill:before { content:""; width:7px; height:7px; border-radius:50%; background:#22c55e; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(34,197,94,.7); } 50% { box-shadow:0 0 0 6px rgba(34,197,94,0); } }
+
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.kpi { position:relative; overflow:hidden; border-radius:14px; padding:10px 14px 10px 16px;
+       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, #0f172a) 0%, #0f172a 70%);
+       border:1px solid color-mix(in srgb, var(--accent) 45%, #1f2937); }
+.kpi:before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent); box-shadow:0 0 14px var(--accent); }
+.kpi .ic { position:absolute; right:10px; top:6px; font-size:1.5rem; opacity:.22; }
+.kpi .lbl { color:#a9b8cc; font-size:.68rem; text-transform:uppercase; letter-spacing:.9px; }
+.kpi .val { color:var(--accent); font-size:1.55rem; font-weight:800; line-height:1.2; }
+
+.charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; }
+.card { background: linear-gradient(160deg,#131c31 0%,#0e1526 100%); border:1px solid #243049; border-radius:14px; padding:10px 14px; }
+.card h4 { margin:0 0 8px 0; font-size:.76rem; color:#dbe5f3; font-weight:700; letter-spacing:.6px; }
+.sm { color:#7d8ca3; font-size:.7rem; font-weight:400; }
+.brow { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:.74rem; color:#d0dbea; }
 .brow .nm { width:42%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.brow .bar { flex:1; height:9px; background:#1f2937; border-radius:5px; overflow:hidden; }
-.brow .bar i { display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,#16a34a,#22c55e); }
-.brow .v { width:52px; text-align:right; color:#86efac; font-weight:600; }
+.brow .bar { flex:1; height:9px; background:#1b2538; border-radius:5px; overflow:hidden; }
+.brow .bar i { display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,#06b6d4,#22c55e,#a3e635); }
+.brow .v { width:52px; text-align:right; color:#86efac; font-weight:700; }
 .seg { display:flex; height:12px; border-radius:6px; overflow:hidden; margin:4px 0 8px 0; }
-.leg { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:.72rem; color:#cbd5e1; }
+.leg { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:.72rem; color:#d0dbea; }
 .leg i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
-.hist { display:flex; align-items:flex-end; gap:8px; height:64px; margin-top:4px; }
-.hist div { flex:1; text-align:center; font-size:.64rem; color:#94a3b8; }
-.hist div b { display:block; border-radius:4px 4px 0 0; background:linear-gradient(180deg,#38bdf8,#0369a1); margin-bottom:2px; }
+.hist { display:flex; align-items:flex-end; gap:8px; height:70px; margin-top:4px; }
+.hist div { flex:1; text-align:center; font-size:.64rem; color:#9fb0c7; }
+.hist div b { display:block; border-radius:5px 5px 0 0; background:linear-gradient(180deg,#f472b6,#8b5cf6 60%,#38bdf8); margin-bottom:2px; }
+
+/* ---------- deal list ---------- */
+.dgrid { --cols: 64px minmax(190px,3.2fr) repeat(4,minmax(72px,1fr)) minmax(112px,1.3fr) minmax(104px,1.1fr) 70px; }
+.dhead, .deal { display:grid; grid-template-columns:var(--cols); align-items:center; column-gap:10px; }
+.dhead { padding:8px 14px; color:#9fb0c7; font-size:.66rem; text-transform:uppercase; letter-spacing:.7px; font-weight:700;
+         background:#111a2e; border:1px solid #243049; border-radius:12px 12px 0 0; }
+.deal { position:relative; padding:8px 14px; background:#0e1526; border:1px solid #1a2438; border-top:none; font-size:.8rem; color:#e6edf7; }
+.deal:before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--st,#334155); }
+.deal:nth-child(even) { background:#101829; }
+.deal:hover { background:#16223a; }
+.deal:last-child { border-radius:0 0 12px 12px; }
+.deal.st-bid { --st:#22c55e; box-shadow:inset 0 0 40px rgba(34,197,94,.10); }
+.deal.st-pos { --st:#14b8a6; }
+.deal.st-neg { --st:#f43f5e; }
+.deal.st-unv { --st:#475569; }
+.d-main { min-width:0; }
+.d-name { color:#f8fafc !important; font-weight:700; text-decoration:none; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.d-name:hover { color:#7dd3fc !important; }
+.d-sub { color:#8da0ba; font-size:.7rem; display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--src,#94a3b8); display:inline-block; }
+.d-num { text-align:right; font-variant-numeric:tabular-nums; }
+.d-num .k { display:none; color:#7d8ca3; font-size:.6rem; text-transform:uppercase; letter-spacing:.7px; }
+.d-mar { display:flex; align-items:center; gap:6px; font-size:.76rem; }
+.mb { display:inline-block; width:54px; height:7px; background:#1b2538; border-radius:4px; overflow:hidden; }
+.mf { display:block; height:100%; border-radius:4px; }
+.tag { display:inline-block; padding:1px 8px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
+.t-bid { background:#14532d; color:#86efac; box-shadow:0 0 10px rgba(34,197,94,.45); }
+.t-pass { background:#1f2937; color:#94a3b8; }
+.t-auc { background:#4a2e05; color:#fcd34d; }
+.t-bin { background:#0c3550; color:#7dd3fc; }
+.t-new { background:#4a0f33; color:#f9a8d4; }
+.t-used { background:#06403d; color:#5eead4; }
+.t-un { background:#1f2937; color:#94a3b8; }
+.t-val { background:#26215c; color:#c4b5fd; }
+.pos { color:#34d399; font-weight:700; }
+.neg { color:#fb7185; font-weight:700; }
+.openbtn { justify-self:end; color:#04130a !important; background:linear-gradient(135deg,#22c55e,#a3e635); padding:3px 10px; border-radius:8px;
+           font-weight:800; font-size:.7rem; text-decoration:none; white-space:nowrap; }
+.openbtn:hover { filter:brightness(1.1); }
+
+@media (max-width: 900px) {
+  .dhead { display:none; }
+  .deal { grid-template-columns:repeat(4,1fr); grid-template-areas:"sig main main go" "ask landed value spread" "mar mar basis basis";
+          row-gap:6px; border-top:1px solid #1a2438; border-radius:12px; margin-bottom:8px; padding:10px 12px 10px 16px; }
+  .deal:last-child { border-radius:12px; }
+  .d-sig { grid-area:sig; } .d-main { grid-area:main; } .d-go { grid-area:go; }
+  .d-ask { grid-area:ask; } .d-landed { grid-area:landed; } .d-value { grid-area:value; } .d-spread { grid-area:spread; }
+  .d-mar { grid-area:mar; } .d-basis { grid-area:basis; justify-self:end; }
+  .d-num { text-align:left; } .d-num .k { display:block; }
+  .hero svg.hero-art { display:none; }
+}
 button[data-baseweb="tab"] { padding: 4px 14px !important; }
 div[data-testid="stTabs"] { margin-top: -4px; }
 </style>
@@ -327,11 +375,26 @@ st.markdown(
 )
 
 
-def kpi(col, label, value, cls="", accent="#38bdf8"):
-    col.markdown(
-        f'<div class="kpi" style="--accent:{accent}"><div class="lbl">{label}</div><div class="val {cls}">{value}</div></div>',
-        unsafe_allow_html=True,
-    )
+SOURCE_COLOR_MAP = {name: SOURCE_COLORS[i % len(SOURCE_COLORS)] for i, name in enumerate(ALL_PLATFORMS)}
+
+
+def kpis_html(items):
+    n = len(items)
+    valued = [l for l in items if l["valued"]]
+    bids = sum(1 for l in items if l["disp_act"])
+    best = max((l["disp_profit"] for l in valued), default=0.0)
+    avg_margin = (sum(l["disp_margin"] for l in valued) / len(valued)) if valued else 0.0
+    cards = [
+        ("Listings", f"{n:,}", "#38bdf8", "📋"),
+        ("BID targets", f"{bids}", "#22c55e", "🎯"),
+        ("Best net spread", usd(best) if valued else "&mdash;", "#a3e635", "💰"),
+        ("Avg margin", f"{avg_margin:.1f}%" if valued else "&mdash;", "#f59e0b", "📈"),
+        ("Valued", f"{len(valued):,}/{n:,}", "#c084fc", "🏷️"),
+    ]
+    return '<div class="kpis">' + "".join(
+        f'<div class="kpi" style="--accent:{c}"><div class="ic">{ic}</div><div class="lbl">{lab}</div><div class="val">{val}</div></div>'
+        for lab, val, c, ic in cards
+    ) + "</div>"
 
 
 def gun_name(l):
@@ -344,42 +407,52 @@ def gun_name(l):
 
 def table_html(rows):
     head = (
-        '<tr><th style="width:7%">Signal</th><th style="width:10%">Source</th><th style="width:8%">Type</th>'
-        '<th style="width:22%">Gun</th><th class="num" style="width:8%">Ask / Bid</th>'
-        '<th class="num" style="width:8%">Landed</th><th class="num" style="width:8%">Value</th>'
-        '<th class="num" style="width:8%">Spread</th><th style="width:10%">Margin</th>'
-        '<th style="width:11%">Basis</th></tr>'
+        '<div class="dhead"><div>Signal</div><div>Gun</div><div style="text-align:right">Ask / Bid</div>'
+        '<div style="text-align:right">Landed</div><div style="text-align:right">Value</div>'
+        '<div style="text-align:right">Spread</div><div>Margin</div><div>Basis</div><div></div></div>'
     )
     body = []
     for l in rows:
         sig = '<span class="tag t-bid">BID</span>' if l["disp_act"] else '<span class="tag t-pass">PASS</span>'
         typ = '<span class="tag t-auc">Auction</span>' if l["is_auction"] else '<span class="tag t-bin">Buy now</span>'
+        cond = str(l.get("condition") or "used").lower()
+        ctag = '<span class="tag t-new">New</span>' if cond == "new" else '<span class="tag t-used">Used</span>'
         cal = esc(l.get("caliber") or "")
         name = esc(gun_name(l))
-        sub = f'<div class="sm">{cal}</div>' if cal else ""
         link = esc(l.get("listing_url") or "#")
         title = esc(l.get("title") or "")
+        src = str(l.get("source_site") or "Direct")
+        color = SOURCE_COLOR_MAP.get(src, "#94a3b8")
+        sub = f'<span class="dot"></span>{esc(src)}{ctag}{typ}' + (f'<span>{cal}</span>' if cal else "")
         ask = usd(num(l.get("current_bid")))
+        landed = usd(num(l.get("total_landed_cost")))
         if l["valued"]:
             sp = l["disp_profit"]
-            cls = "pos" if sp >= 0 else "neg"
             mg = l["disp_margin"]
+            state = "st-bid" if l["disp_act"] else ("st-pos" if sp >= 0 else "st-neg")
+            cls = "pos" if sp >= 0 else "neg"
             pct = max(0, min(60, mg)) / 60.0 * 100
-            color = "#22c55e" if mg >= 15 else ("#f59e0b" if mg >= 0 else "#ef4444")
+            mcolor = "#22c55e" if mg >= 15 else ("#f59e0b" if mg >= 0 else "#f43f5e")
             val = usd(l["disp_retail"])
             spread = f'<span class="{cls}">{usd_signed(sp)}</span>'
-            margin = f'<span class="mb"><span class="mf" style="display:block;width:{pct:.0f}%;background:{color}"></span></span>{mg:.0f}%'
+            margin = f'<span class="mb"><span class="mf" style="width:{pct:.0f}%;background:{mcolor}"></span></span>{mg:.0f}%'
             basis = f'<span class="tag t-val">{esc(l.get("compliance_badge") or "Valued")}</span>'
         else:
+            state = "st-unv"
             val, spread, margin = "&mdash;", "&mdash;", '<span class="sm">no comp yet</span>'
             basis = '<span class="tag t-un">Unvalued</span>'
         body.append(
-            f'<tr title="{title}"><td>{sig}</td><td>{esc(l.get("source_site", "Direct"))}</td><td>{typ}</td>'
-            f'<td class="gun"><a href="{link}" target="_blank" style="color:#e2e8f0;text-decoration:none">{name}</a>{sub}</td>'
-            f'<td class="num">{ask}</td><td class="num">{usd(num(l.get("total_landed_cost")))}</td>'
-            f'<td class="num">{val}</td><td class="num">{spread}</td><td>{margin}</td><td>{basis}</td></tr>'
+            f'<div class="deal {state}" style="--src:{color}" title="{title}">'
+            f'<div class="d-sig">{sig}</div>'
+            f'<div class="d-main"><a class="d-name" href="{link}" target="_blank">{name}</a><div class="d-sub">{sub}</div></div>'
+            f'<div class="d-num d-ask"><span class="k">Ask</span>{ask}</div>'
+            f'<div class="d-num d-landed"><span class="k">Landed</span>{landed}</div>'
+            f'<div class="d-num d-value"><span class="k">Value</span>{val}</div>'
+            f'<div class="d-num d-spread"><span class="k">Spread</span>{spread}</div>'
+            f'<div class="d-mar">{margin}</div><div class="d-basis">{basis}</div>'
+            f'<a class="openbtn d-go" href="{link}" target="_blank">Open &#8599;</a></div>'
         )
-    return f'<table class="dtbl">{head}{"".join(body)}</table>'
+    return f'<div class="dgrid">{head}{"".join(body)}</div>'
 
 
 def charts_html(items):
@@ -422,40 +495,30 @@ def charts_html(items):
         for (lab, _, _), c in zip(buckets, bc)
     )
     c3 = f'<div class="card"><h4>📊 PRICE DISTRIBUTION</h4><div class="hist">{cols}</div></div>'
-    return c1 + c2 + c3
+    return '<div class="charts">' + c1 + c2 + c3 + '</div>'
 
 
 def render_dashboard(items, key):
     n = len(items)
-    valued = [l for l in items if l["valued"]]
-    bids = sum(1 for l in items if l["disp_act"])
-    best = max((l["disp_profit"] for l in valued), default=0.0)
-    avg_margin = (sum(l["disp_margin"] for l in valued) / len(valued)) if valued else 0.0
-
-    k1, k2, k3, k4, k5 = st.columns(5)
-    kpi(k1, "Listings", f"{n}", "blue", "#38bdf8")
-    kpi(k2, "BID targets", f"{bids}", "good", "#22c55e")
-    kpi(k3, "Best net spread", usd(best) if valued else "&mdash;", "good" if best > 0 else "", "#22c55e")
-    kpi(k4, "Avg margin", f"{avg_margin:.1f}%" if valued else "&mdash;", "amber", "#f59e0b")
-    kpi(k5, "Valued", f"{len(valued)}/{n}", "", "#a78bfa")
+    st.markdown(kpis_html(items), unsafe_allow_html=True)
 
     if not items:
         st.markdown(EMPTY_ART, unsafe_allow_html=True)
         return
 
-    ctl_info, ctl_rows, ctl_page = st.columns([4, 1, 1])
-    page_size = ctl_rows.selectbox("Rows", [8, 10, 12, 15, 20], index=1, key=f"ps_{key}", label_visibility="collapsed")
+    st.markdown(charts_html(items), unsafe_allow_html=True)
+
+    ctl_info, ctl_rows, ctl_page = st.columns([4, 1.4, 1.2])
+    choice = ctl_rows.selectbox("Rows", ["All", "25", "50", "100", "250"], index=0, key=f"ps_{key}", label_visibility="collapsed")
+    page_size = n if choice == "All" else int(choice)
     pages = max(1, math.ceil(n / page_size))
-    page = ctl_page.number_input("Page", min_value=1, max_value=pages, value=1, step=1, key=f"pg_{key}", label_visibility="collapsed")
+    page = 1
+    if pages > 1:
+        page = ctl_page.number_input("Page", min_value=1, max_value=pages, value=1, step=1, key=f"pg_{key}", label_visibility="collapsed")
     start = (int(page) - 1) * page_size
     end = min(start + page_size, n)
-    ctl_info.caption(f"Showing {start + 1}-{end} of {n}  •  page {int(page)}/{pages}  •  click a gun name to open the listing")
-
-    left, right = st.columns([2.6, 1])
-    with left:
-        st.markdown(table_html(items[start:end]), unsafe_allow_html=True)
-    with right:
-        st.markdown(charts_html(items), unsafe_allow_html=True)
+    ctl_info.caption(f"Showing {start + 1}-{end} of {n}" + (f"  •  page {int(page)}/{pages}" if pages > 1 else "") + "  •  click a gun name to open the listing")
+    st.markdown(table_html(items[start:end]), unsafe_allow_html=True)
 
 
 tab_all, tab_auc, tab_alert, tab_sys = st.tabs(["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System"])
