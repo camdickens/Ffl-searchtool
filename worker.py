@@ -54,47 +54,58 @@ BRAND_ALIASES = {"s&w": "Smith & Wesson", "sig": "Sig Sauer", "hk": "Heckler & K
                  "iwi": "IWI", "sccy": "SCCY", "heckler and koch": "Heckler & Koch",
                  "smith and wesson": "Smith & Wesson", "dpms": "DPMS", "altor corp": "Altor Corp"}
 
+def paged(base, pages, joiner="?"):
+    return [base] + [f"{base}{joiner}page={i}" for i in range(2, pages + 1)]
+
+
+# Rough ScraperAPI cost per run: Guns.com 3 premium pages (~75), Bud's 3 + UsedGuns 4 + GunsAmerica 1 + HiBid 1
+# + Tacswap 1 rendered pages (~10 each), the rest plain fetches (~1 each). About 210 credits per run.
 SITE_CONFIGS = {
     "Guns.com": {
         "card_selector": "li.product-card, .productCard, div[class*='productCard']",
         "url_prefix": "https://www.guns.com",
         "render_js": True, "premium": True,
-        "urls": ["https://www.guns.com/firearms/handguns?condition=used"],
+        "urls": [
+            "https://www.guns.com/firearms/handguns?condition=used",
+            "https://www.guns.com/firearms/rifles?condition=used",
+            "https://www.guns.com/firearms/shotguns?condition=used",
+        ],
     },
     "Classic Firearms": {
         "card_selector": "div.product-card, .product-item",
         "url_prefix": "https://www.classicfirearms.com",
         "render_js": False,
-        "urls": [
-            "https://www.classicfirearms.com/firearms/handguns/",
-            "https://www.classicfirearms.com/firearms/handguns/?p=2",
-            "https://www.classicfirearms.com/firearms/handguns/?p=3",
-        ],
+        "urls": (["https://www.classicfirearms.com/firearms/handguns/"]
+                 + [f"https://www.classicfirearms.com/firearms/handguns/?p={i}" for i in range(2, 9)]
+                 + ["https://www.classicfirearms.com/firearms/rifles/"]
+                 + [f"https://www.classicfirearms.com/firearms/rifles/?p={i}" for i in range(2, 9)]
+                 + ["https://www.classicfirearms.com/firearms/shotguns/"]
+                 + [f"https://www.classicfirearms.com/firearms/shotguns/?p={i}" for i in range(2, 5)]),
     },
     "Buds Gun Shop": {
         "card_selector": "a[href*='/products/']",
         "url_prefix": "https://www.budsgunshop.com",
         "render_js": True,
-        "urls": [
-            "https://www.budsgunshop.com/categories/firearms/used",
-            "https://www.budsgunshop.com/categories/firearms/used?page=2",
-        ],
+        "urls": paged("https://www.budsgunshop.com/categories/firearms/used", 3),
     },
     "Sportsman's Outdoor Superstore": {
         "card_selector": "div.box-outline",
         "url_prefix": "https://www.sportsmansoutdoorsuperstore.com",
         "render_js": False,
-        "urls": [
-            "https://www.sportsmansoutdoorsuperstore.com/category.cfm/sportsman/used-firearms",
-            "https://www.sportsmansoutdoorsuperstore.com/category.cfm/CurrentPage/2/sportsman/used-firearms/dept/Firearms",
-            "https://www.sportsmansoutdoorsuperstore.com/category.cfm/CurrentPage/3/sportsman/used-firearms/dept/Firearms",
-        ],
+        "urls": ["https://www.sportsmansoutdoorsuperstore.com/category.cfm/sportsman/used-firearms"]
+                + [f"https://www.sportsmansoutdoorsuperstore.com/category.cfm/CurrentPage/{i}/sportsman/used-firearms/dept/Firearms"
+                   for i in range(2, 7)],
     },
     "UsedGuns.com": {
         "card_selector": "div.product-card",
         "url_prefix": "https://www.usedguns.com",
         "render_js": True,
-        "urls": ["https://www.usedguns.com/Subcategory/Pistol/8423042?filter=1&sort=7&images=false&freeShipping=false&shipping=false"],
+        "urls": [
+            "https://www.usedguns.com/Subcategory/Pistol/8423042?filter=1&sort=7&images=false&freeShipping=false&shipping=false",
+            "https://www.usedguns.com/Subcategory/Revolver/16811650?filter=1&sort=7&images=false&freeShipping=false&shipping=false",
+            "https://www.usedguns.com/Subcategory/Rifle/33588866?filter=1&sort=7&images=false&freeShipping=false&shipping=false",
+            "https://www.usedguns.com/Subcategory/Firearms/34434?filter=1&sort=7&images=false&freeShipping=false&shipping=false",
+        ],
     },
     "GunsAmerica": {
         "card_selector": "h2 a[href*='/firearms/']",
@@ -106,16 +117,14 @@ SITE_CONFIGS = {
         "card_selector": "li.pdl_item",
         "url_prefix": "https://www.armslist.com",
         "render_js": False,
-        "urls": [
-            "https://www.armslist.com/search?category=handguns&posttype=7&ships=true",
-            "https://www.armslist.com/search?category=handguns&posttype=7&ships=true&page=2",
-        ],
+        "urls": [f"https://www.armslist.com/search?category={c}&posttype=7&ships=true" + (f"&page={p}" if p > 1 else "")
+                 for c in ("handguns", "rifles", "shotguns") for p in (1, 2)],
     },
     "HiBid": {
         "card_selector": "div.lot-tile",
         "url_prefix": "https://hibid.com",
         "render_js": True, "strict": True,
-        "urls": ["https://hibid.com/lots?q=handgun&status=Open&category=Firearms"],
+        "urls": ["https://hibid.com/lots?q=firearm&status=Open&category=Firearms"],
     },
     "Tacswap": {
         "card_selector": "a[href*='/post/']",
@@ -648,7 +657,9 @@ def main():
     lots = []
     per_source = {}
 
-    gb = fetch_gunbroker_api()
+    gb = []
+    for kw in ("pistol", "revolver", "rifle", "shotgun"):
+        gb.extend(fetch_gunbroker_api(keywords=kw))
     lots.extend(gb)
     per_source["GunBroker"] = len(gb)
 
