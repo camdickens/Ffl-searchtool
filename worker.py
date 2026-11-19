@@ -46,6 +46,7 @@ BRANDS = [
     "Star", "Makarov", "Tokarev", "Luger", "Sig", "S&W",
     "Heckler and Koch", "Smith and Wesson", "Radom", "Altor Corp", "Altor", "Derya", "DPMS", "Zenith Firearms",
     "Polish", "Sar Arms", "SAR", "Girsan", "Mkm", "Hungarian", "Romanian", "Glock Inc",
+    "Shadow Systems", "Archon Firearms", "Springfield Armory", "Ruger", "FN America", "Bul Armory", "Tanfoglio", "EAA", "Excel Arms", "Walther Arms", "Savage Arms",
 ]
 BRANDS.sort(key=len, reverse=True)
 BRAND_ALIASES = {"s&w": "Smith & Wesson", "sig": "Sig Sauer", "hk": "Heckler & Koch",
@@ -57,7 +58,7 @@ SITE_CONFIGS = {
     "Guns.com": {
         "card_selector": "li.product-card, .productCard, div[class*='productCard']",
         "url_prefix": "https://www.guns.com",
-        "render_js": True,
+        "render_js": True, "premium": True,
         "urls": ["https://www.guns.com/firearms/handguns?condition=used"],
     },
     "Classic Firearms": {
@@ -70,7 +71,75 @@ SITE_CONFIGS = {
             "https://www.classicfirearms.com/firearms/handguns/?p=3",
         ],
     },
+    "Buds Gun Shop": {
+        "card_selector": "a[href*='/products/']",
+        "url_prefix": "https://www.budsgunshop.com",
+        "render_js": True,
+        "urls": [
+            "https://www.budsgunshop.com/categories/firearms/used",
+            "https://www.budsgunshop.com/categories/firearms/used?page=2",
+        ],
+    },
+    "Sportsman's Outdoor Superstore": {
+        "card_selector": "div.box-outline",
+        "url_prefix": "https://www.sportsmansoutdoorsuperstore.com",
+        "render_js": False,
+        "urls": [
+            "https://www.sportsmansoutdoorsuperstore.com/category.cfm/sportsman/used-firearms",
+            "https://www.sportsmansoutdoorsuperstore.com/category.cfm/CurrentPage/2/sportsman/used-firearms/dept/Firearms",
+            "https://www.sportsmansoutdoorsuperstore.com/category.cfm/CurrentPage/3/sportsman/used-firearms/dept/Firearms",
+        ],
+    },
+    "UsedGuns.com": {
+        "card_selector": "div.product-card",
+        "url_prefix": "https://www.usedguns.com",
+        "render_js": True,
+        "urls": ["https://www.usedguns.com/Subcategory/Pistol/8423042?filter=1&sort=7&images=false&freeShipping=false&shipping=false"],
+    },
+    "GunsAmerica": {
+        "card_selector": "h2 a[href*='/firearms/']",
+        "url_prefix": "https://gunsamerica.com",
+        "render_js": True,
+        "urls": ["https://gunsamerica.com/firearms/handguns?sort=listingStartDate"],
+    },
+    "Armslist": {
+        "card_selector": "li.pdl_item",
+        "url_prefix": "https://www.armslist.com",
+        "render_js": False,
+        "urls": [
+            "https://www.armslist.com/search?category=handguns&posttype=7&ships=true",
+            "https://www.armslist.com/search?category=handguns&posttype=7&ships=true&page=2",
+        ],
+    },
+    "HiBid": {
+        "card_selector": "div.lot-tile",
+        "url_prefix": "https://hibid.com",
+        "render_js": True, "strict": True,
+        "urls": ["https://hibid.com/lots?q=handgun&status=Open&category=Firearms"],
+    },
+    "Tacswap": {
+        "card_selector": "a[href*='/post/']",
+        "url_prefix": "https://tacswap.com",
+        "render_js": True, "strict": True,
+        "urls": ["https://tacswap.com/firearm"],
+    },
 }
+
+NON_GUN_RE = re.compile(
+    r"\b(holsters?|magazines?|cases?|optics?|scopes?|sights?|ammo|ammunition|uppers?|lowers?|suppressors?|"
+    r"silencers?|barrels?|grips?|stocks?|triggers?|lights?|lasers?|knife|knives|slings?|mounts?|bipods?|safes?|cleaning|builds?)\b",
+    re.IGNORECASE)
+GUN_WORD_RE = re.compile(r"\b(pistol|revolver|rifle|shotgun|carbine|handgun|derringer)\b", re.IGNORECASE)
+
+
+def looks_like_gun(title: str) -> bool:
+    if NON_GUN_RE.search(title or ""):
+        return False
+    if GUN_WORD_RE.search(title or ""):
+        return True
+    low = (title or "").lower()
+    return any(re.search(r"\b" + re.escape(b.lower()) + r"\b", low) for b in BRANDS if len(b) > 2)
+
 
 CALIBER_RE = re.compile(
     r"((?<![\d.])\.\d{2,3}\s?(?:acp|auto|lr|wmr|mag(?:num)?|spl|special|s&w|win|colt|nato)?"
@@ -305,7 +374,7 @@ def fetch_gunbroker_api(keywords="pistol", page_size=48):
 
 
 # ---------- ScraperAPI ----------
-def fetch_html(target_url: str, render_js: bool) -> str:
+def fetch_html(target_url: str, render_js: bool, premium: bool = False) -> str:
     if not SCRAPER_API_KEY:
         print("No SCRAPER_API_KEY set.")
         return ""
@@ -315,7 +384,7 @@ def fetch_html(target_url: str, render_js: bool) -> str:
             "url": target_url,
             "render": "true" if render_js else "false",
         }
-        if render_js:
+        if render_js and premium:
             payload["premium"] = "true"
         proxy_url = f"http://api.scraperapi.com?{urllib.parse.urlencode(payload)}"
         resp = requests.get(proxy_url, timeout=70)
@@ -391,14 +460,165 @@ def parse_classic(card, config):
                 caliber=find_caliber(title), is_auction=False, buy_now=0.0)
 
 
-PARSERS = {"Guns.com": parse_gunscom, "Classic Firearms": parse_classic}
+def strip_condition(title: str) -> str:
+    return squash(re.sub(r"^(?:used|like new|new)\s+", "", title or "", flags=re.IGNORECASE))
+
+
+def first_price(text):
+    amounts = money(text)
+    return amounts[0] if amounts else 0.0
+
+
+def parse_buds(a, config):
+    title = squash(a.get_text(" ", strip=True))
+    if len(title) < 8:
+        return None
+    price_el = None
+    for parent in a.parents:
+        price_el = parent.select_one("[id^=card-pricing-display]")
+        if price_el:
+            break
+        if parent.name == "body":
+            return None
+    if not price_el:
+        return None
+    price = first_price(price_el.get_text(" ", strip=True))
+    if not price:
+        return None
+    title = strip_condition(title)
+    make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, a.get("href", "")),
+                caliber=find_caliber(title), is_auction=False, buy_now=0.0)
+
+
+def parse_sportsmans(card, config):
+    a = card.select_one(".prd-info h2 a")
+    if not a:
+        return None
+    title = strip_condition(squash(a.get_text(" ", strip=True)))
+    price_el = card.select_one("span.price")
+    price = first_price(price_el.get_text(" ", strip=True)) if price_el else 0.0
+    if not price:
+        return None
+    brand_el = card.select_one("[itemprop=brand] [itemprop=name], [itemprop=brand]")
+    brand = squash(brand_el.get_text(" ", strip=True)) if brand_el else ""
+    if brand:
+        hint = title[len(brand):].strip() if title.lower().startswith(brand.lower()) else title
+        make, model = split_make_model(title, make_hint=brand, model_hint=hint)
+    else:
+        make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, a.get("href", "")),
+                caliber=find_caliber(title), is_auction=False, buy_now=0.0)
+
+
+def parse_usedguns(card, config):
+    a = card.select_one("a[href*='/Item/Details/']")
+    if not a:
+        return None
+    title = squash(a.get_text(" ", strip=True))
+    if not title:
+        info = card.select_one(".item-info")
+        title = squash(info.get_text(" ", strip=True).split("$")[0]) if info else ""
+    if len(title) < 4:
+        return None
+    price = first_price(card.get_text(" ", strip=True))
+    if not price:
+        return None
+    make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, a.get("href", "")),
+                caliber=find_caliber(title), is_auction=False, buy_now=0.0)
+
+
+def parse_gunsamerica(a, config):
+    title = squash(a.get_text(" ", strip=True))
+    href = a.get("href", "")
+    path = href.split("?")[0].strip("/").split("/")
+    if title.endswith("...") or title.endswith("\u2026"):
+        if len(path) >= 2:
+            title = squash(title.rstrip(".\u2026") + " " + path[-1].replace("-", " "))
+    if len(title) < 4:
+        return None
+    card = a
+    for parent in a.parents:
+        if first_price(parent.get_text(" ", strip=True)) and len(parent.find_all("h2")) == 1:
+            card = parent
+            break
+    price = first_price(card.get_text(" ", strip=True))
+    if not price:
+        return None
+    make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, href),
+                caliber=find_caliber(title), is_auction=False, buy_now=0.0)
+
+
+def parse_armslist(card, config):
+    a = card.select_one("h3 a, a.search-link")
+    if not a:
+        return None
+    title = squash(a.get("title") or a.get_text(" ", strip=True))
+    if len(title) < 4:
+        return None
+    price_el = card.select_one(".ci-price")
+    price = first_price(price_el.get_text(" ", strip=True)) if price_el else 0.0
+    if not price:
+        return None
+    make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, a.get("href", "")),
+                caliber=find_caliber(title), is_auction=False, buy_now=0.0)
+
+
+def parse_hibid(card, config):
+    a = None
+    for cand in card.select(".app-auction-lot-card__body a[href*='/lot/'], a[href*='/lot/']"):
+        if len(squash(cand.get_text(" ", strip=True))) > 6 and not re.match(r"^lot\s*\d+$", squash(cand.get_text(" ", strip=True)), re.I):
+            a = cand
+            break
+    if not a:
+        return None
+    full = squash(card.get_text(" ", strip=True))
+    if "local pickup only" in full.lower():
+        return None
+    price = first_price(full)
+    if not price:
+        return None
+    title = squash(a.get_text(" ", strip=True))
+    make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, a.get("href", "")),
+                caliber=find_caliber(title), is_auction=True, buy_now=0.0)
+
+
+def parse_tacswap(a, config):
+    title = squash(a.get_text(" ", strip=True))
+    if len(title) < 4:
+        return None
+    card = a
+    for parent in a.parents:
+        txt = squash(parent.get_text(" ", strip=True))
+        if "$" in txt and len(txt) < 400:
+            card = parent
+            break
+    txt = squash(card.get_text(" ", strip=True))
+    if "want to trade" in txt.lower():
+        return None
+    price = first_price(txt)
+    if not price:
+        return None
+    make, model = split_make_model(title)
+    return dict(title=title, make=make, model=model, price=price, url=absolute_url(config, a.get("href", "")),
+                caliber=find_caliber(title), is_auction=False, buy_now=0.0)
+
+
+PARSERS = {"Guns.com": parse_gunscom, "Classic Firearms": parse_classic, "Buds Gun Shop": parse_buds,
+           "Sportsman's Outdoor Superstore": parse_sportsmans, "UsedGuns.com": parse_usedguns,
+           "GunsAmerica": parse_gunsamerica, "Armslist": parse_armslist, "HiBid": parse_hibid,
+           "Tacswap": parse_tacswap}
 
 
 def scrape_target(site_name, task_url):
     lots = []
     config = SITE_CONFIGS[site_name]
     print(f"Executing task for {site_name}: {task_url}")
-    html = fetch_html(task_url, render_js=config["render_js"])
+    html = fetch_html(task_url, render_js=config["render_js"], premium=config.get("premium", False))
     if not html:
         return lots
     soup = BeautifulSoup(html, "html.parser")
@@ -412,6 +632,9 @@ def scrape_target(site_name, task_url):
             print(f"[{site_name}] parse error: {e}")
             item = None
         if not item or item["price"] < 50.0 or not is_gun_listing(item["title"]):
+            dropped += 1
+            continue
+        if config.get("strict") and not looks_like_gun(item["title"]):
             dropped += 1
             continue
         lots.append(build_lot(site_name, item["title"], item["make"], item["model"], item["price"],
@@ -434,7 +657,7 @@ def main():
         for u in cfg["urls"]:
             tasks.append({"site": site, "url": u})
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(scrape_target, t["site"], t["url"]): t["site"] for t in tasks}
         for future in as_completed(futures):
             site = futures[future]
