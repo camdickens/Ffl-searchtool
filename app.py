@@ -312,6 +312,124 @@ def stripe_status(email):
         return "error"
 
 
+# ---------------- LEGAL / DISCLAIMERS ----------------
+SUPPORT_EMAIL = get_secret("SUPPORT_EMAIL") or "camerondickens9000@gmail.com"
+LEGAL_UPDATED = "November 19, 2026"
+
+DISCLAIMER_SHORT = (
+    "FFL Deal Radar is for information only. It is not legal, tax or financial advice, and it does not sell, "
+    "broker or transfer firearms. Listings come from third parties and may be wrong, outdated or already sold. "
+    "Values, spreads and compliance labels are estimates, and no profit is guaranteed. Firearm transfers must go "
+    "through a licensed FFL and follow all federal, state and local laws. You are responsible for confirming "
+    "everything before you buy, sell or bid."
+)
+
+TERMS_MD = """
+**Terms of Service** (last updated LEGAL_DATE)
+
+By signing in, starting a free trial or using FFL Deal Radar (the "Service"), you agree to these Terms. If you do not agree, do not use the Service.
+
+**1. What the Service is.** FFL Deal Radar is an information and market-data tool. It collects publicly listed firearm and accessory listings from third-party websites and shows estimated costs, values and spreads. We are not a firearms dealer, broker, auctioneer, marketplace or seller. We do not sell, transfer, ship or hold any firearm, we do not take part in any sale, and we take no fee from any sale.
+
+**2. Eligibility.** You must be at least 18 years old (21 where the law requires it) and legally allowed to own and possess firearms where you live. You are solely responsible for knowing and following every federal, state and local law that applies to you, including licensing, background checks, waiting periods, transfers through a licensed FFL, roster and model restrictions, magazine and feature restrictions, and shipping and transport rules.
+
+**3. No professional advice.** Nothing in the Service is legal, tax, financial, investment or compliance advice. Compliance labels such as "Massachusetts Compliant" are automated, general indicators built on limited listing data. They can be wrong or out of date. Always confirm legality with the seller, a licensed FFL and the law itself before you buy, sell, bid or transfer anything.
+
+**4. Third-party listings and accuracy.** Listings, prices, photos, descriptions and availability come from third parties and may be inaccurate, incomplete, outdated, misdescribed or already sold. Estimated landed cost, value, spread and margin are rough estimates, often based on asking prices rather than completed sales. They are not appraisals and not a promise of profit. Verify every detail directly with the seller. We are not responsible for any third-party site, seller, listing or transaction, and we are not affiliated with or endorsed by any of them. Their names and trademarks belong to their owners.
+
+**5. Your use.** You may use the Service for your own personal or internal business use. You may not copy, scrape, resell, republish or redistribute the data, share your login, bypass the paywall or security, overload or interfere with the Service, or use it for anything unlawful, including any illegal purchase, sale, transfer or straw purchase of a firearm. We may suspend or end access at any time if we believe these Terms are being broken.
+
+**6. Subscriptions and payment.** See the Subscription and refunds tab. Payments are processed by Stripe.
+
+**7. No warranty.** The Service is provided "as is" and "as available", without warranties of any kind, express or implied, including accuracy, reliability, availability, merchantability, fitness for a particular purpose and non-infringement. We do not promise that the Service will be uninterrupted or error-free, or that any deal shown will be real, available or profitable.
+
+**8. Limitation of liability.** To the fullest extent the law allows, we are not liable for any indirect, incidental, special, consequential or punitive damages, or for lost profits, lost opportunities or lost data, or for any loss arising from a purchase, sale, transfer, bid or other decision you make using the Service. Our total liability for any claim relating to the Service is limited to the amount you paid us in the 3 months before the claim arose. Some places do not allow these limits, so they may not fully apply to you.
+
+**9. Indemnity.** You agree to defend and hold us harmless from claims, losses and expenses (including reasonable legal fees) that arise from your use of the Service, your breach of these Terms, or your violation of any law or third-party right.
+
+**10. Changes and ending.** We may change the Service, its price (with notice before it applies to you) or these Terms at any time. Using the Service after a change means you accept it. You can stop at any time by cancelling your subscription.
+
+**11. Governing law.** These Terms are governed by the laws of the Commonwealth of Massachusetts, without regard to conflict-of-law rules. Disputes will be brought in the state or federal courts located in Massachusetts, and you consent to those courts.
+
+**12. Contact.** Questions about these Terms: SUPPORT_MAIL
+""".replace("LEGAL_DATE", LEGAL_UPDATED).replace("SUPPORT_MAIL", SUPPORT_EMAIL)
+
+PRIVACY_MD = """
+**Privacy Policy** (last updated LEGAL_DATE)
+
+**What we collect.** When you sign in with Google we receive your name and email address. When you subscribe, Stripe tells us whether your subscription is active, in a trial, or not active. Our hosting provider may log basic technical data such as IP address, browser type and the pages requested. We do not collect any other personal information from you.
+
+**Payments.** Your card details are entered on Stripe's pages and handled only by Stripe. We never see or store your card number.
+
+**How we use it.** To let you sign in, check that your subscription is active, keep the Service secure and working, answer your questions, and meet legal obligations.
+
+**Who we share it with.** Only the service providers that make the Service run: Google (sign-in), Stripe (payments and subscription records), Render (hosting) and GitHub (code and data feed). We do not sell your personal information, and we do not share it for advertising. We may disclose information if the law requires it.
+
+**Cookies.** We use only the cookies needed to keep you signed in. We do not use advertising or cross-site tracking cookies.
+
+**Keeping and deleting.** We keep your sign-in details only as long as needed to run your access. Stripe keeps billing records as required by law. To ask for a copy of your information or for it to be deleted, email SUPPORT_MAIL.
+
+**Security.** We use reasonable safeguards, but no online service is perfectly secure.
+
+**Age.** The Service is not for anyone under 18.
+
+**Changes.** We may update this policy and will change the date above when we do.
+
+**Contact.** SUPPORT_MAIL
+""".replace("LEGAL_DATE", LEGAL_UPDATED).replace("SUPPORT_MAIL", SUPPORT_EMAIL)
+
+SUBSCRIPTION_MD = """
+**Subscription and refunds** (last updated LEGAL_DATE)
+
+**Price.** $50 per month, plus any applicable sales tax, which Stripe calculates at checkout.
+
+**Free trial.** New subscribers get a 7-day free trial. A card is required to start it. If you do not cancel before the trial ends, your card is charged $50 automatically and your subscription continues month to month. If you cancel before the trial ends, you pay nothing. The trial is limited to one per person, and we may refuse a trial if we believe it is being abused.
+
+**Renewal.** Your subscription renews every month on the same date until you cancel. We will give notice before any price change applies to you.
+
+**How to cancel.** Sign in, open Manage account, and choose Manage or cancel subscription. This opens Stripe's billing portal, where you can cancel, update your card and download receipts. Cancellation takes effect as shown in the portal. You can also email SUPPORT_MAIL.
+
+**Refunds.** Payments are non-refundable and we do not give partial-month refunds, except where the law requires it or where we decide to as a courtesy. If you think you were charged by mistake, email us within 7 days of the charge.
+
+**Failed payments.** If a payment fails, we may pause your access until it is fixed.
+""".replace("LEGAL_DATE", LEGAL_UPDATED).replace("SUPPORT_MAIL", SUPPORT_EMAIL)
+
+DISCLAIMER_MD = """
+**Disclaimer**
+
+FFL Deal Radar is an information tool only.
+
+- **Not a seller or broker.** We do not sell, broker, ship, hold or transfer firearms, and we are not a party to any transaction between you and a seller.
+- **Not advice.** Nothing here is legal, tax, financial or investment advice. We are not lawyers or financial advisors.
+- **Compliance labels are estimates.** Labels such as "Massachusetts Compliant" are automated and general. They may be wrong, incomplete or out of date. Confirm every purchase and transfer against current law with the seller and a licensed FFL.
+- **Listings may be wrong.** Listings, prices and availability come from third-party sites and can be inaccurate, changed or sold. Always verify with the seller.
+- **Values are estimates.** Value, net spread and margin figures are rough estimates, often based on asking prices. They are not appraisals, and no profit is guaranteed. Shipping, transfer fees, taxes and condition can change the real result.
+- **Follow the law.** All firearm transfers must follow federal, state and local law, including transfers through a licensed FFL. You are solely responsible for your own purchases, sales and bids.
+- **No affiliation.** We are not affiliated with, sponsored by or endorsed by any marketplace, seller, manufacturer or brand shown. All names and trademarks belong to their owners.
+"""
+
+
+def render_legal_tabs():
+    t1, t2, t3, t4 = st.tabs(["Terms of Service", "Privacy Policy", "Subscription and refunds", "Disclaimer"])
+    with t1:
+        st.markdown(TERMS_MD)
+    with t2:
+        st.markdown(PRIVACY_MD)
+    with t3:
+        st.markdown(SUBSCRIPTION_MD)
+    with t4:
+        st.markdown(DISCLAIMER_MD)
+
+
+def render_footer():
+    st.markdown(
+        '<div style="margin:26px 0 8px 0; padding:14px 4px 0 4px; border-top:1px solid #1f3a57; color:#7d8ca3; font-size:.72rem; line-height:1.55;">'
+        + esc(DISCLAIMER_SHORT)
+        + " See the Legal tab for the Terms of Service and Privacy Policy.</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_paywall(email, err=False, manual=False):
     from urllib.parse import quote
     link = PAYMENT_LINK + ("&" if "?" in PAYMENT_LINK else "?") + "prefilled_email=" + quote(email)
@@ -343,7 +461,7 @@ def render_paywall(email, err=False, manual=False):
         '<li>Massachusetts and federal compliance views</li>'
         '<li>Cancel any time before the trial ends and pay nothing</li></ul>'
         f'<a class="gobtn" href="{esc(link)}" target="_self">Start my free week &rarr;</a></div>'
-        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe.'
+        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe. By starting your free week you agree to the Terms of Service and Privacy Policy, linked below.'
         + (" After you subscribe, we activate your access by hand, usually within a few hours." if manual else "")
         + "</div></div>",
         unsafe_allow_html=True,
@@ -356,6 +474,9 @@ def render_paywall(email, err=False, manual=False):
         st.rerun()
     if c2.button("Sign out", use_container_width=True):
         st.logout()
+    with st.expander("Terms of Service, Privacy Policy and Disclaimers"):
+        render_legal_tabs()
+    render_footer()
 
 
 is_owner = user_email in ALLOWED_EMAILS
@@ -381,18 +502,24 @@ feed = get_feed()
 all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
 
 # ---------------- TOP BAR: navigation (top right) + account ----------------
-NAV_OPTIONS = ["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System"]
+NAV_OPTIONS = ["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System", "⚖️ Legal"]
 with st.container(key="topbar"):
-    nav_col, acct_col = st.columns([3, 1])
+    nav_col, acct_col = st.columns([3.6, 1])
     with nav_col:
         view = st.radio("Navigation", NAV_OPTIONS, horizontal=True, label_visibility="collapsed", key="nav_view")
     with acct_col:
         with st.popover("👤 Manage account"):
             st.caption(f"Signed in as {user_email}")
+            if is_owner:
+                st.caption("Owner access")
             if sub_state == "trialing":
-                st.caption("Free trial active")
-            if PORTAL_LINK and sub_state in ("active", "trialing"):
-                st.link_button("Manage billing", PORTAL_LINK, use_container_width=True)
+                st.caption("Free trial active. Cancel any time before it ends and you pay nothing.")
+            elif sub_state == "active":
+                st.caption("Subscription active")
+            if PORTAL_LINK and (is_owner or sub_state in ("active", "trialing")):
+                st.link_button("Manage or cancel subscription", PORTAL_LINK, use_container_width=True)
+            elif sub_state in ("active", "trialing"):
+                st.caption("To manage or cancel, email " + SUPPORT_EMAIL)
             if st.button("🚪 Sign out", use_container_width=True):
                 st.logout()
 
@@ -652,7 +779,7 @@ elif view == NAV_OPTIONS[2]:
     if st.button("Save alert threshold"):
         st.success("Alert preferences updated.")
 
-else:
+elif view == NAV_OPTIONS[3]:
     st.subheader("System infrastructure")
     per_source = feed.get("per_source") or {}
     st.write(f"**Total listings:** {len(all_lots)}  •  **Feed status:** {'Healthy' if all_lots else 'Sync required'}")
@@ -661,3 +788,9 @@ else:
     unvalued = sum(1 for l in all_lots if not l["valued"])
     st.write(f"**Unvalued listings:** {unvalued} of {len(all_lots)} (no comparable listings found yet)")
     st.caption("The feed is refreshed every 3 hours by a GitHub Actions workflow.")
+
+else:
+    st.subheader("Terms, privacy and disclaimers")
+    render_legal_tabs()
+
+render_footer()
