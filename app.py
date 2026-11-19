@@ -303,7 +303,7 @@ def stripe_status(email):
         return "error"
 
 
-def render_paywall(email, err=False):
+def render_paywall(email, err=False, manual=False):
     from urllib.parse import quote
     link = PAYMENT_LINK + ("&" if "?" in PAYMENT_LINK else "?") + "prefilled_email=" + quote(email)
     st.markdown(
@@ -334,13 +334,15 @@ def render_paywall(email, err=False):
         '<li>Massachusetts and federal compliance views</li>'
         '<li>Cancel any time before the trial ends and pay nothing</li></ul>'
         f'<a class="gobtn" href="{esc(link)}" target="_self">Start my free week &rarr;</a></div>'
-        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe.</div></div>',
+        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe.'
+        + (" After you subscribe, we activate your access by hand, usually within a few hours." if manual else "")
+        + "</div></div>",
         unsafe_allow_html=True,
     )
     if err:
         st.warning("We could not check your subscription just now. Please try again in a moment.")
     c1, c2 = st.columns(2)
-    if c1.button("I've subscribed, refresh", use_container_width=True):
+    if not manual and c1.button("I've subscribed, refresh", use_container_width=True):
         stripe_status.clear()
         st.rerun()
     if c2.button("Sign out", use_container_width=True):
@@ -355,6 +357,9 @@ if email_verified and not is_owner:
         if sub_state not in ("active", "trialing"):
             render_paywall(user_email, err=(sub_state == "error"))
             st.stop()
+    elif PAYMENT_LINK:
+        render_paywall(user_email, manual=True)
+        st.stop()
     else:
         ui_art.render_login(unauthorized_email=user_email)
         st.stop()
