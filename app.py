@@ -92,7 +92,7 @@ st.markdown(
     radial-gradient(900px 420px at 100% 0%, #2a1a4d 0%, transparent 58%),
     radial-gradient(800px 500px at 50% 120%, #0b3b2e 0%, transparent 60%), #080d17; }
 header[data-testid="stHeader"] { background: transparent; height: 2.4rem; }
-[data-testid="stToolbar"], [data-testid="stDecoration"], footer { display: none !important; }
+[data-testid="stDecoration"], footer, [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"], .stDeployButton { display: none !important; }
 .block-container { padding: 3rem 1.2rem 2rem 1.2rem !important; max-width: 100% !important; }
 section[data-testid="stSidebar"] > div { background: linear-gradient(180deg,#0f172a 0%,#101a33 55%,#0c2a2a 100%); padding-top: 0.6rem; }
 div[data-testid="stVerticalBlock"] { gap: 1rem; }
