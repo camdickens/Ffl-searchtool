@@ -165,7 +165,27 @@ if CRON_TOKEN and params.get("task") == "scrape" and params.get("token") == CRON
 
 
 # ---------------- FEED LOADER ----------------
+FEED_URL = "https://raw.githubusercontent.com/camdickens/Ffl-searchtool/main/feed_data.json"
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_remote_feed():
+    try:
+        import requests
+        r = requests.get(FEED_URL, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, dict) and isinstance(data.get("lots"), list):
+                return data
+    except Exception:
+        pass
+    return None
+
+
 def get_feed():
+    data = fetch_remote_feed()
+    if data:
+        return data
     if os.path.exists(FEED_FILE):
         try:
             with open(FEED_FILE, "r") as f:
@@ -299,7 +319,7 @@ filtered_lots.sort(key=_key, reverse=_rev)
 
 # ---------------- HEADER ----------------
 st.markdown(
-    f"""<div class="hero"><div><h1>{ui_art.CROSSHAIR_ICON}FFL Deal Radar<span class="pill">● LIVE</span></h1><div class="sub">{esc(mode)} &nbsp;•&nbsp; Last updated {esc(feed.get('last_updated', 'just now'))} &nbsp;•&nbsp; refreshed hourly &nbsp;•&nbsp; {len(filtered_lots)} of {len(all_lots)} listings shown</div></div>{HERO_ART}</div>""",
+    f"""<div class="hero"><div><h1>{ui_art.CROSSHAIR_ICON}FFL Deal Radar<span class="pill">● LIVE</span></h1><div class="sub">{esc(mode)} &nbsp;•&nbsp; Last updated {esc(feed.get('last_updated', 'just now'))} &nbsp;•&nbsp; refreshed every 2 hours &nbsp;•&nbsp; {len(filtered_lots)} of {len(all_lots)} listings shown</div></div>{HERO_ART}</div>""",
     unsafe_allow_html=True,
 )
 
@@ -420,15 +440,16 @@ def render_dashboard(items, key):
         st.markdown(EMPTY_ART, unsafe_allow_html=True)
         return
 
+    ctl_info, ctl_rows, ctl_page = st.columns([4, 1, 1])
+    page_size = ctl_rows.selectbox("Rows", [8, 10, 12, 15, 20], index=1, key=f"ps_{key}", label_visibility="collapsed")
+    pages = max(1, math.ceil(n / page_size))
+    page = ctl_page.number_input("Page", min_value=1, max_value=pages, value=1, step=1, key=f"pg_{key}", label_visibility="collapsed")
+    start = (int(page) - 1) * page_size
+    end = min(start + page_size, n)
+    ctl_info.caption(f"Showing {start + 1}-{end} of {n}  •  page {int(page)}/{pages}  •  click a gun name to open the listing")
+
     left, right = st.columns([2.6, 1])
     with left:
-        c1, c2, c3 = st.columns([2.2, 1, 1])
-        page_size = c2.selectbox("Rows", [8, 10, 12, 15, 20], index=1, key=f"ps_{key}", label_visibility="collapsed")
-        pages = max(1, math.ceil(n / page_size))
-        page = c3.number_input("Page", min_value=1, max_value=pages, value=1, step=1, key=f"pg_{key}", label_visibility="collapsed")
-        start = (int(page) - 1) * page_size
-        end = min(start + page_size, n)
-        c1.caption(f"Showing {start + 1}-{end} of {n}  •  page {int(page)}/{pages}  •  click a gun name to open the listing")
         st.markdown(table_html(items[start:end]), unsafe_allow_html=True)
     with right:
         st.markdown(charts_html(items), unsafe_allow_html=True)
@@ -457,7 +478,7 @@ with tab_sys:
         st.write("**Listings per source (last run):** " + ", ".join(f"{k}: {v}" for k, v in per_source.items()))
     unvalued = sum(1 for l in all_lots if not l["valued"])
     st.write(f"**Unvalued listings:** {unvalued} of {len(all_lots)} (no comparable listings found yet)")
-    st.caption("The feed is refreshed hourly by a GitHub Actions workflow.")
+    st.caption("The feed is refreshed every 2 hours by a GitHub Actions workflow.")
     if st.button("🔄 Force immediate re-sync"):
         try:
             import worker
