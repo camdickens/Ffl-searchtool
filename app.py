@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import altair as alt
 import streamlit as st
+import ui_art
 
 st.set_page_config(page_title="FFL Deal Radar", page_icon="🎯", layout="wide")
 
@@ -122,17 +123,13 @@ if not auth_configured:
     st.stop()
 
 if not st.user.is_logged_in:
-    st.title("🎯 FFL Deal Radar — Dealer Portal")
-    st.write("Sign in with your Google account to continue.")
-    st.button("Sign in with Google", on_click=st.login, use_container_width=True)
+    ui_art.render_login()
     st.stop()
 
 user_email = str(st.user.get("email") or "").lower()
 email_verified = st.user.get("email_verified", True)
 if not ALLOWED_EMAILS or user_email not in ALLOWED_EMAILS or not email_verified:
-    st.title("🎯 FFL Deal Radar")
-    st.error(f"{user_email or 'This account'} is not authorized for this portal.")
-    st.button("Sign out", on_click=st.logout)
+    ui_art.render_login(unauthorized_email=user_email)
     st.stop()
 
 # ---------------- LOAD DATA ----------------
@@ -219,7 +216,7 @@ filtered_lots.sort(key=_key, reverse=_rev)
 st.markdown(
     f"""
 <div class="hero">
-  <div><h1>🎯 FFL Deal Radar<span class="pill">● LIVE</span></h1>
+  <div><h1>{ui_art.CROSSHAIR_ICON}FFL Deal Radar<span class="pill">● LIVE</span></h1>
   <div class="sub">{mode} &nbsp;•&nbsp; Last updated {feed.get('last_updated', 'just now')} &nbsp;•&nbsp; refreshed hourly</div></div>
   <div class="sub">{len(filtered_lots)} of {len(all_lots)} listings shown</div>
 </div>
