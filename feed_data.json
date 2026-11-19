@@ -1,88 +1,12 @@
 {
-  "last_updated": "2026-11-19 02:32 AM",
-  "total_scraped": 156,
+  "last_updated": "2026-11-19 02:36 AM",
+  "total_scraped": 155,
   "per_source": {
     "GunBroker": 0,
-    "Classic Firearms": 138,
+    "Classic Firearms": 137,
     "Guns.com": 24
   },
   "lots": [
-    {
-      "lot_id": "CL-c627901b",
-      "source_site": "Classic Firearms",
-      "title": "SCT Manufacturing SCT 19 0226000000IF Full-Size Polymer Frame White Finish for Glock 19/23/32 Gen1-3",
-      "make": "Glock",
-      "model": "SCT Manufacturing SCT 19",
-      "caliber": "",
-      "current_bid": 89.99,
-      "buy_now": 0.0,
-      "is_auction": false,
-      "total_landed_cost": 119.99,
-      "listing_url": "https://www.classicfirearms.com/sct-0226000000if-full-frame-assy02a-wht/",
-      "valuation_sources": {
-        "gb_sold": 510.0,
-        "gc_retail": 550.0,
-        "ga_comp": 530.0
-      },
-      "valuation_basis": "table",
-      "is_pre_ban": false,
-      "federal_retail": 530.0,
-      "ma_retail": 609.5,
-      "ma_profit": 489.51,
-      "ma_margin": 80.3,
-      "federal_profit": 410.01,
-      "compliance_badge": "Roster Model"
-    },
-    {
-      "lot_id": "CL-0902b87a",
-      "source_site": "Classic Firearms",
-      "title": "Smith & Wesson M&P 22 Magnum Semi-Automatic Pistol, 4.35\" Barrel, (2) 30 Round Magazines - 13433",
-      "make": "Smith & Wesson",
-      "model": "M&P 22 Magnum",
-      "caliber": "",
-      "current_bid": 349.99,
-      "buy_now": 0.0,
-      "is_auction": false,
-      "total_landed_cost": 379.99,
-      "listing_url": "https://www.classicfirearms.com/smith-wesson-m-p-22-magnum-semi-automatic-pistol-4-35-barrel-2-30-round-magazines-13433/",
-      "valuation_sources": {
-        "peer_median": 518.55,
-        "peer_count": 2
-      },
-      "valuation_basis": "peer",
-      "is_pre_ban": false,
-      "federal_retail": 518.55,
-      "ma_retail": 596.33,
-      "ma_profit": 216.34,
-      "ma_margin": 36.3,
-      "federal_profit": 138.56,
-      "compliance_badge": "Peer comp"
-    },
-    {
-      "lot_id": "CL-fe4cf200",
-      "source_site": "Classic Firearms",
-      "title": "Smith & Wesson M&P 22X 22 LR 4.1\" Pistol 20+1 Capacity Internal Hammer-Fired Optics-Ready Threaded Barrel",
-      "make": "Smith & Wesson",
-      "model": "M&P 22X 22 LR",
-      "caliber": "",
-      "current_bid": 399.0,
-      "buy_now": 0.0,
-      "is_auction": false,
-      "total_landed_cost": 429.0,
-      "listing_url": "https://www.classicfirearms.com/smith-wesson-mp-22x-22-lr-41-pistol/",
-      "valuation_sources": {
-        "peer_median": 494.04,
-        "peer_count": 2
-      },
-      "valuation_basis": "peer",
-      "is_pre_ban": false,
-      "federal_retail": 494.04,
-      "ma_retail": 568.15,
-      "ma_profit": 139.15,
-      "ma_margin": 24.5,
-      "federal_profit": 65.04,
-      "compliance_badge": "Peer comp"
-    },
     {
       "lot_id": "GU-b100ee83",
       "source_site": "Guns.com",
@@ -149,7 +73,7 @@
       "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-semi-automatic-ar-15-pistol-7-5-barrel-m-lok-handguard-60-round-magazine-flip-up-sights-brace-black-atigax5567ml60tb/",
       "valuation_sources": {
         "peer_median": 349.99,
-        "peer_count": 5
+        "peer_count": 3
       },
       "valuation_basis": "peer",
       "is_pre_ban": false,
@@ -158,31 +82,6 @@
       "ma_profit": 52.5,
       "ma_margin": 13.0,
       "federal_profit": 0.0,
-      "compliance_badge": "Peer comp"
-    },
-    {
-      "lot_id": "CL-02e2f860",
-      "source_site": "Classic Firearms",
-      "title": "ATI Alpha Maxx Semi-Automatic AR-15 Pistol 8.5\" Barrel, .300 Blackout, M-LOK Handguard, 30 Round Mag, Adj Brace & Flip Up Sights",
-      "make": "ATI",
-      "model": "Alpha Maxx",
-      "caliber": ".300",
-      "current_bid": 329.99,
-      "buy_now": 0.0,
-      "is_auction": false,
-      "total_landed_cost": 359.99,
-      "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-semi-automatic-ar-15-pistol-8-5-barrel-300-blackout-m-lok-handguard-30-round-mag-adj-brace-w-flip-up-sights/",
-      "valuation_sources": {
-        "peer_median": 349.99,
-        "peer_count": 5
-      },
-      "valuation_basis": "peer",
-      "is_pre_ban": false,
-      "federal_retail": 349.99,
-      "ma_retail": 402.49,
-      "ma_profit": 42.5,
-      "ma_margin": 10.6,
-      "federal_profit": -10.0,
       "compliance_badge": "Peer comp"
     },
     {
@@ -199,7 +98,7 @@
       "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-semi-auto-ar-15-pistol-5-56-nato-223-rem-7-5-bbl-aluminum-mlok-handguard-60-rd-magazine-flip-up-sights-brace-black-atigax556ml7tb60/",
       "valuation_sources": {
         "peer_median": 349.99,
-        "peer_count": 5
+        "peer_count": 3
       },
       "valuation_basis": "peer",
       "is_pre_ban": false,
@@ -224,32 +123,7 @@
       "listing_url": "https://www.classicfirearms.com/ati-omni-maxx-semi-automatic-ar-15-pistol-7-5-barrel-m-lok-handguard-60-round-magazine-flip-up-sights-brace-atigax5567ml60/",
       "valuation_sources": {
         "peer_median": 339.99,
-        "peer_count": 5
-      },
-      "valuation_basis": "peer",
-      "is_pre_ban": false,
-      "federal_retail": 339.99,
-      "ma_retail": 390.99,
-      "ma_profit": 11.0,
-      "ma_margin": 2.8,
-      "federal_profit": -40.0,
-      "compliance_badge": "Peer comp"
-    },
-    {
-      "lot_id": "CL-587487ab",
-      "source_site": "Classic Firearms",
-      "title": "ATI Alpha Maxx AR-15, Semi Automatic Pistol, 5.56 NATO/.223, 7.5\" Threaded Barrel, (1) 30rd Magazine, Flip Up Sights, FDE - ATIGAX5567MLCFDE30",
-      "make": "ATI",
-      "model": "Alpha Maxx AR-15",
-      "caliber": "5.56",
-      "current_bid": 349.99,
-      "buy_now": 0.0,
-      "is_auction": false,
-      "total_landed_cost": 379.99,
-      "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-atigax5567mlcfde30-pistol-556-75/",
-      "valuation_sources": {
-        "peer_median": 339.99,
-        "peer_count": 5
+        "peer_count": 3
       },
       "valuation_basis": "peer",
       "is_pre_ban": false,
@@ -274,7 +148,7 @@
       "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-556x45mm-pistol-75-barrel/",
       "valuation_sources": {
         "peer_median": 339.99,
-        "peer_count": 5
+        "peer_count": 3
       },
       "valuation_basis": "peer",
       "is_pre_ban": false,
@@ -601,7 +475,7 @@
       "lot_id": "CL-5acf711e",
       "source_site": "Classic Firearms",
       "title": "DPMS Kitty Kat C7 FSB Pistol 5.56 NATO 7.5\" Barrel 30+1 Semi-Auto CAR Brace Free-Float Handguard",
-      "make": "Dpms",
+      "make": "DPMS",
       "model": "Kitty Kat C7 FSB",
       "caliber": "5.56",
       "current_bid": 649.99,
@@ -817,8 +691,8 @@
       "lot_id": "CL-11192fa9",
       "source_site": "Classic Firearms",
       "title": "Altor Corp Single Shot 9mm Pistol 2.9\" Barrel - ALT00022",
-      "make": "Altor",
-      "model": "Corp Single Shot",
+      "make": "Altor Corp",
+      "model": "Single Shot",
       "caliber": "9MM",
       "current_bid": 89.99,
       "buy_now": 0.0,
@@ -865,8 +739,8 @@
       "lot_id": "CL-57ebb749",
       "source_site": "Classic Firearms",
       "title": "Heckler and Koch SP5K-PDW Semi-Automatic 9x19mm Pistol, 5.83\" Threaded Barrel with Tri Lug Adapter & (2) 30 Round Magazines - 81000481",
-      "make": "Heckler",
-      "model": "and Koch SP5K-PDW",
+      "make": "Heckler & Koch",
+      "model": "SP5K-PDW",
       "caliber": "",
       "current_bid": 3249.0,
       "buy_now": 0.0,
@@ -969,6 +843,30 @@
       "is_auction": false,
       "total_landed_cost": 296.78,
       "listing_url": "https://www.classicfirearms.com/ruger-lcp-max-380acp-semi-auto-pistol-28/",
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "valuation_basis": "none",
+      "is_pre_ban": false,
+      "federal_retail": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "federal_profit": 0.0,
+      "compliance_badge": "Unvalued"
+    },
+    {
+      "lot_id": "CL-fe4cf200",
+      "source_site": "Classic Firearms",
+      "title": "Smith & Wesson M&P 22X 22 LR 4.1\" Pistol 20+1 Capacity Internal Hammer-Fired Optics-Ready Threaded Barrel",
+      "make": "Smith & Wesson",
+      "model": "M&P 22X 22 LR",
+      "caliber": "",
+      "current_bid": 399.0,
+      "buy_now": 0.0,
+      "is_auction": false,
+      "total_landed_cost": 429.0,
+      "listing_url": "https://www.classicfirearms.com/smith-wesson-mp-22x-22-lr-41-pistol/",
       "valuation_sources": {
         "triangulated_avg": 0.0
       },
@@ -1246,6 +1144,30 @@
       "compliance_badge": "Unvalued"
     },
     {
+      "lot_id": "CL-5d79d0dc",
+      "source_site": "Classic Firearms",
+      "title": "Smith & Wesson M&P 5.7 Optic Ready, Semi-Automatic, 5.7x28mm Pistol, (2) 22 Round Magazines - FDE - 14004",
+      "make": "Smith & Wesson",
+      "model": "M&P 5.7 Optic Ready",
+      "caliber": "",
+      "current_bid": 638.09,
+      "buy_now": 0.0,
+      "is_auction": false,
+      "total_landed_cost": 668.09,
+      "listing_url": "https://www.classicfirearms.com/smith-wesson-m-p-optic-ready-semi-automatic-5-7x28mm-pistol-2-22-round-magazines-fde-14004/",
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "valuation_basis": "none",
+      "is_pre_ban": false,
+      "federal_retail": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "federal_profit": 0.0,
+      "compliance_badge": "Unvalued"
+    },
+    {
       "lot_id": "CL-e7983cf8",
       "source_site": "Classic Firearms",
       "title": "Buffalo Cartridge Co. 9MM Semi-Auto Pistol, BRG9 Elite 4\" Barrel, Grip Safety, Trigger Safety, Ambi Mag Release, 2-16 Rd Mags, Feature Rich, Black",
@@ -1305,6 +1227,30 @@
       "is_auction": false,
       "total_landed_cost": 409.99,
       "listing_url": "https://www.classicfirearms.com/glock-17-gen-5-semi-auto-pistol-9mm-4-49-barrel-front-serrations-17rd-capacity-law-enforcement-trade-ins-good-to-very-good-condition/",
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "valuation_basis": "none",
+      "is_pre_ban": false,
+      "federal_retail": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "federal_profit": 0.0,
+      "compliance_badge": "Unvalued"
+    },
+    {
+      "lot_id": "CL-587487ab",
+      "source_site": "Classic Firearms",
+      "title": "ATI Alpha Maxx AR-15, Semi Automatic Pistol, 5.56 NATO/.223, 7.5\" Threaded Barrel, (1) 30rd Magazine, Flip Up Sights, FDE - ATIGAX5567MLCFDE30",
+      "make": "ATI",
+      "model": "Alpha Maxx AR-15",
+      "caliber": "5.56",
+      "current_bid": 349.99,
+      "buy_now": 0.0,
+      "is_auction": false,
+      "total_landed_cost": 379.99,
+      "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-atigax5567mlcfde30-pistol-556-75/",
       "valuation_sources": {
         "triangulated_avg": 0.0
       },
@@ -1798,6 +1744,30 @@
       "compliance_badge": "Unvalued"
     },
     {
+      "lot_id": "CL-0902b87a",
+      "source_site": "Classic Firearms",
+      "title": "Smith & Wesson M&P 22 Magnum Semi-Automatic Pistol, 4.35\" Barrel, (2) 30 Round Magazines - 13433",
+      "make": "Smith & Wesson",
+      "model": "M&P 22 Magnum",
+      "caliber": "",
+      "current_bid": 349.99,
+      "buy_now": 0.0,
+      "is_auction": false,
+      "total_landed_cost": 379.99,
+      "listing_url": "https://www.classicfirearms.com/smith-wesson-m-p-22-magnum-semi-automatic-pistol-4-35-barrel-2-30-round-magazines-13433/",
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "valuation_basis": "none",
+      "is_pre_ban": false,
+      "federal_retail": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "federal_profit": 0.0,
+      "compliance_badge": "Unvalued"
+    },
+    {
       "lot_id": "CL-e6739526",
       "source_site": "Classic Firearms",
       "title": "Taurus 1911 FS Pistol .45 ACP 5in 8rd Black Model 1-191101FS",
@@ -1942,6 +1912,30 @@
       "compliance_badge": "Unvalued"
     },
     {
+      "lot_id": "CL-02e2f860",
+      "source_site": "Classic Firearms",
+      "title": "ATI Alpha Maxx Semi-Automatic AR-15 Pistol 8.5\" Barrel, .300 Blackout, M-LOK Handguard, 30 Round Mag, Adj Brace & Flip Up Sights",
+      "make": "ATI",
+      "model": "Alpha Maxx",
+      "caliber": ".300",
+      "current_bid": 329.99,
+      "buy_now": 0.0,
+      "is_auction": false,
+      "total_landed_cost": 359.99,
+      "listing_url": "https://www.classicfirearms.com/ati-alpha-maxx-semi-automatic-ar-15-pistol-8-5-barrel-300-blackout-m-lok-handguard-30-round-mag-adj-brace-w-flip-up-sights/",
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "valuation_basis": "none",
+      "is_pre_ban": false,
+      "federal_retail": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "federal_profit": 0.0,
+      "compliance_badge": "Unvalued"
+    },
+    {
       "lot_id": "CL-bad04286",
       "source_site": "Classic Firearms",
       "title": "Hungarian FEG AP 7.65 / .32 ACP Caliber Pistol, Semi-Auto 3.9\" BBL, Police Turn-ins, Two Tone - Good Surplus Condition",
@@ -1969,8 +1963,8 @@
       "lot_id": "CL-f43f89f4",
       "source_site": "Classic Firearms",
       "title": "Romanian TTC Tokarev Pistol - 7.62x25 8rd - Mfg by Cugir Factory in Romania. Good to Very Good Surplus Condition, Grips May Vary , w/ Holster - C & R Eligible",
-      "make": "Tokarev",
-      "model": "Romanian TTC",
+      "make": "Romanian",
+      "model": "TTC Tokarev",
       "caliber": "7.62X25",
       "current_bid": 399.99,
       "buy_now": 0.0,
@@ -2233,8 +2227,8 @@
       "lot_id": "CL-e6040010",
       "source_site": "Classic Firearms",
       "title": "Heckler and Koch MR556 A4 .223 / 5.56 NATO 11\" Barrel, 30rd Magazine, Semi-Auto Pistol - 81001050",
-      "make": "Heckler",
-      "model": "and Koch MR556 A4",
+      "make": "Heckler & Koch",
+      "model": "MR556 A4",
       "caliber": ".223",
       "current_bid": 3749.0,
       "buy_now": 0.0,
@@ -2761,8 +2755,8 @@
       "lot_id": "CL-48c3dc16",
       "source_site": "Classic Firearms",
       "title": "Altor Corp Single Shot .380 ACP Pistol 2.9\" Barrel - ALT00020",
-      "make": "Altor",
-      "model": "Corp Single Shot",
+      "make": "Altor Corp",
+      "model": "Single Shot",
       "caliber": ".380 ACP",
       "current_bid": 79.99,
       "buy_now": 0.0,
@@ -3602,7 +3596,7 @@
       "source_site": "Guns.com",
       "title": "HECKLER AND KOCH VP9 MATCH",
       "make": "Heckler & Koch",
-      "model": "HECKLER AND KOCH VP9",
+      "model": "VP9 MATCH",
       "caliber": "9MM LUGER (9x19 PARA)",
       "current_bid": 1499.99,
       "buy_now": 0.0,
@@ -3740,31 +3734,6 @@
       "ma_margin": 0.0,
       "federal_profit": 0.0,
       "compliance_badge": "Unvalued"
-    },
-    {
-      "lot_id": "CL-5d79d0dc",
-      "source_site": "Classic Firearms",
-      "title": "Smith & Wesson M&P 5.7 Optic Ready, Semi-Automatic, 5.7x28mm Pistol, (2) 22 Round Magazines - FDE - 14004",
-      "make": "Smith & Wesson",
-      "model": "M&P 5.7 Optic Ready",
-      "caliber": "",
-      "current_bid": 638.09,
-      "buy_now": 0.0,
-      "is_auction": false,
-      "total_landed_cost": 668.09,
-      "listing_url": "https://www.classicfirearms.com/smith-wesson-m-p-optic-ready-semi-automatic-5-7x28mm-pistol-2-22-round-magazines-fde-14004/",
-      "valuation_sources": {
-        "peer_median": 374.5,
-        "peer_count": 2
-      },
-      "valuation_basis": "peer",
-      "is_pre_ban": false,
-      "federal_retail": 374.5,
-      "ma_retail": 430.67,
-      "ma_profit": -237.42,
-      "ma_margin": -55.1,
-      "federal_profit": -293.59,
-      "compliance_badge": "Peer comp"
     }
   ]
 }
