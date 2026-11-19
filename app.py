@@ -269,7 +269,96 @@ if not st.user.is_logged_in:
 
 user_email = str(st.user.get("email") or "").lower()
 email_verified = st.user.get("email_verified", True)
-if not ALLOWED_EMAILS or user_email not in ALLOWED_EMAILS or not email_verified:
+
+# ---------------- SUBSCRIPTION GATE (Stripe) ----------------
+# Owners listed in ALLOWED_EMAILS always get in. Everyone else needs an active or trialing
+# Stripe subscription. Billing turns on only when STRIPE_SECRET_KEY and STRIPE_PAYMENT_LINK are set.
+STRIPE_KEY = get_secret("STRIPE_SECRET_KEY")
+PAYMENT_LINK = get_secret("STRIPE_PAYMENT_LINK")
+PORTAL_LINK = get_secret("STRIPE_PORTAL_LINK")
+BILLING_ON = bool(STRIPE_KEY and PAYMENT_LINK)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def stripe_status(email):
+    """Returns 'active', 'trialing', 'none', or 'error' for this email."""
+    try:
+        import requests
+        auth = (STRIPE_KEY, "")
+        r = requests.get("https://api.stripe.com/v1/customers", params={"email": email, "limit": 10}, auth=auth, timeout=10)
+        if r.status_code != 200:
+            return "error"
+        found = "none"
+        for c in r.json().get("data", []):
+            sr = requests.get("https://api.stripe.com/v1/subscriptions", params={"customer": c["id"], "status": "all", "limit": 10}, auth=auth, timeout=10)
+            if sr.status_code != 200:
+                return "error"
+            for sub in sr.json().get("data", []):
+                if sub.get("status") == "active":
+                    return "active"
+                if sub.get("status") == "trialing":
+                    found = "trialing"
+        return found
+    except Exception:
+        return "error"
+
+
+def render_paywall(email, err=False):
+    from urllib.parse import quote
+    link = PAYMENT_LINK + ("&" if "?" in PAYMENT_LINK else "?") + "prefilled_email=" + quote(email)
+    st.markdown(
+        """
+<style>
+.pw { max-width:560px; margin:18px auto 0 auto; text-align:center; }
+.pw h1 { color:#f8fafc; font-size:1.8rem; margin:0 0 4px 0; }
+.pw .sub { color:#a9b8cc; font-size:.95rem; margin-bottom:18px; }
+.plan { border:1px solid #2b4a6b; border-radius:18px; padding:22px 20px; text-align:left;
+        background:linear-gradient(150deg,#0b1d3a 0%,#0e5a4a 100%); box-shadow:0 10px 36px rgba(14,90,74,.35); }
+.plan .badge { display:inline-block; background:#14532d; color:#86efac; border-radius:999px; padding:2px 12px; font-size:.72rem; font-weight:800; }
+.plan .price { color:#a3e635; font-size:2.4rem; font-weight:900; margin:8px 0 0 0; }
+.plan .price span { color:#b6c8dd; font-size:.9rem; font-weight:500; }
+.plan ul { color:#e6edf7; padding-left:18px; margin:12px 0 4px 0; font-size:.9rem; line-height:1.7; }
+.gobtn { display:block; text-align:center; margin-top:16px; padding:12px; border-radius:12px; font-weight:900; font-size:1rem;
+         text-decoration:none; color:#04130a !important; background:linear-gradient(135deg,#22c55e,#a3e635); }
+.fine { color:#7d8ca3; font-size:.74rem; text-align:center; margin-top:10px; }
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="pw"><h1>🎯 FFL Deal Radar</h1><div class="sub">Find underpriced guns across 9 marketplaces, with landed cost and resale value done for you.</div>'
+        '<div class="plan"><span class="badge">FIRST 7 DAYS FREE</span>'
+        '<div class="price">$50<span> / month after your free week</span></div>'
+        '<ul><li>Live feed from 9 sources, refreshed every 3 hours</li>'
+        '<li>Landed-cost and net-spread math on every listing</li>'
+        '<li>Massachusetts and federal compliance views</li>'
+        '<li>Cancel any time before the trial ends and pay nothing</li></ul>'
+        f'<a class="gobtn" href="{esc(link)}" target="_self">Start my free week &rarr;</a></div>'
+        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe.</div></div>',
+        unsafe_allow_html=True,
+    )
+    if err:
+        st.warning("We could not check your subscription just now. Please try again in a moment.")
+    c1, c2 = st.columns(2)
+    if c1.button("I've subscribed, refresh", use_container_width=True):
+        stripe_status.clear()
+        st.rerun()
+    if c2.button("Sign out", use_container_width=True):
+        st.logout()
+
+
+is_owner = user_email in ALLOWED_EMAILS
+sub_state = "owner" if is_owner else ""
+if email_verified and not is_owner:
+    if BILLING_ON:
+        sub_state = stripe_status(user_email)
+        if sub_state not in ("active", "trialing"):
+            render_paywall(user_email, err=(sub_state == "error"))
+            st.stop()
+    else:
+        ui_art.render_login(unauthorized_email=user_email)
+        st.stop()
+elif not email_verified:
     ui_art.render_login(unauthorized_email=user_email)
     st.stop()
 
@@ -281,6 +370,10 @@ all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
 with st.sidebar:
     st.markdown("### 🎯 FFL Radar")
     st.caption(f"Signed in as {user_email}")
+    if sub_state == "trialing":
+        st.caption("Free trial active")
+    if PORTAL_LINK and sub_state in ("active", "trialing"):
+        st.link_button("Manage billing", PORTAL_LINK, use_container_width=True)
     if st.button("🚪 Sign out", use_container_width=True):
         st.logout()
 
