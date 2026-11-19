@@ -252,6 +252,7 @@ with st.sidebar:
     selected_calibers = st.multiselect("Caliber", calibers, default=[]) if calibers else []
 
     listing_type = st.radio("Listing type", ["All", "Auctions", "Buy-It-Now"], horizontal=True)
+    condition_pick = st.radio("Condition", ["All", "Used", "New"], horizontal=True)
 
     prices = [num(l.get("current_bid")) for l in all_lots]
     p_max = int(max(prices)) if prices else 5000
@@ -286,6 +287,8 @@ for l in all_lots:
     if selected_makes and str(l.get("make") or "").title() not in selected_makes:
         continue
     if selected_calibers and str(l.get("caliber") or "").upper() not in selected_calibers:
+        continue
+    if condition_pick != "All" and str(l.get("condition", "used")).lower() != condition_pick.lower():
         continue
     if listing_type == "Auctions" and not l["is_auction"]:
         continue
