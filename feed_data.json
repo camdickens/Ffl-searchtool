@@ -1,0 +1,646 @@
+{
+  "last_updated": "2026-11-19 01:37 AM",
+  "total_scraped": 32,
+  "lots": [
+    {
+      "lot_id": "GU-b100ee83",
+      "source_site": "Guns.com",
+      "title": "GLOCK 19 gen 29 MM LUGER (9 x 19 PARA) P 15 Rounds 4.02 BarrelCondition USEDAdd To Cart 459.99",
+      "make": "glock",
+      "model": "19",
+      "current_bid": 459.99,
+      "total_landed_cost": 489.99,
+      "valuation_sources": {
+        "triangulated_avg": 530.0
+      },
+      "federal_retail": 530.0,
+      "federal_profit": 40.01,
+      "ma_retail": 609.5,
+      "ma_profit": 119.51,
+      "ma_margin": 19.6,
+      "is_pre_ban": false,
+      "compliance_badge": "Commercial Roster",
+      "listing_url": "https://www.guns.com/used-guns/p/glock-19-gen-2?i=779315"
+    },
+    {
+      "lot_id": "CL-13c3993b",
+      "source_site": "Classic Firearms",
+      "title": "Colt ZO 1070 CCS 1911 Government Competition .45 ACP 5 Barrel 8 rd Semi-Auto Pistol Stainless Steel - Minor Cosmetic Blem",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 799.0,
+      "total_landed_cost": 829.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/colt-defense-zo1070ccs-competition-pistol-5-ss/"
+    },
+    {
+      "lot_id": "CL-ad209fad",
+      "source_site": "Classic Firearms",
+      "title": "Smith & Wesson SD 9 2.0 Bundle 14954 Pistol 9 mm 4 16 1 Striker-Fired Stainless Slide Black Frame Savior Bag",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 299.0,
+      "total_landed_cost": 329.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/smith-wesson-sd9-20-bundle-14954-pistol-9mm/"
+    },
+    {
+      "lot_id": "CL-ab6a2a55",
+      "source_site": "Classic Firearms",
+      "title": "Zastava M 70 Semi Auto Pistol 7.65/.32 ACP - 1-8 rd Mag - Good to Very Good Surplus Condition",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 225.0,
+      "total_landed_cost": 255.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/zastava-m70-32acp-7-65/"
+    },
+    {
+      "lot_id": "CL-127a481c",
+      "source_site": "Classic Firearms",
+      "title": "Beretta Model 1934-1 Used Semi-Auto .380 ACP 7 1 Capacity 3.5 Barrel Manual Safety - Surplus Good Condition",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 275.0,
+      "total_landed_cost": 305.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/beretta-model-1934-1-used-semi-auto-380-acp-7-1-capacity-3-7-barrel-surplus-good-condition/"
+    },
+    {
+      "lot_id": "CL-c79824b9",
+      "source_site": "Classic Firearms",
+      "title": "Panzer Arms HAN 9 Semi Automatic 9 mm Pistol 6.5 Barrel (2) 30 rd MP 5 Magazines MLok Handguard Flip Up Sights 1913 Rear Attachment - PAHAN 9 PCCB",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 499.0,
+      "total_landed_cost": 529.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/panzer-arms-han9-semi-automatic-9mm-pistol-6-5-barrel-2-30rd-mp5-magazines-mlok-handguard-flip-up-sights-1913-rear-attachment-pahan9pccb/"
+    },
+    {
+      "lot_id": "CL-0902b87a",
+      "source_site": "Classic Firearms",
+      "title": "Smith & Wesson M&P 22 Magnum Semi-Automatic Pistol 4.35 Barrel (2) 30 Round Magazines - 13433",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 349.0,
+      "total_landed_cost": 379.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/smith-wesson-m-p-22-magnum-semi-automatic-pistol-4-35-barrel-2-30-round-magazines-13433/"
+    },
+    {
+      "lot_id": "CL-1eb8adc0",
+      "source_site": "Classic Firearms",
+      "title": "Pioneer Arms Micro Hellpup PRO 7.62 x 39 AK-47 Pistol Quad Rail Side Rail Rear Trunnion 1913 Picatinny Rail - Forged Trunnion - 2-30 rd Magazines",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 699.0,
+      "total_landed_cost": 729.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/pioneer-arms-micro-hellpup-pro-7-62x39-ak-47-pistol-quad-rail-side-rail-rear-trunnion-1913-picatinny-rail-forged-trunnion-2-30rd-magazines/"
+    },
+    {
+      "lot_id": "CL-72c81707",
+      "source_site": "Classic Firearms",
+      "title": "Panzer Arms HAN 9 Semi Automatic 9 mm Pistol 6.5 Barrel (2) 30 rd MP 5 Mags MLok Handguard Flip Up Sights 1913 Rear Attachment Grey - PAHAN 9 PCCTG",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 499.0,
+      "total_landed_cost": 529.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.classicfirearms.com/panzer-arms-han9-semi-automatic-9mm-pistol-6-5-barrel-2-30rd-mp5-mags-mlok-handguard-flip-up-sights-1913-rear-attachment-grey-pahan9pcctg/"
+    },
+    {
+      "lot_id": "GU-0e1152ac",
+      "source_site": "Guns.com",
+      "title": "Price Drop Alert Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Price Drop Alert Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days ago Recently Added 1 days agoSPRINGFIELD ARMORYXPM.45 ACP 13 Rounds 4.5 BarrelCondition USEDAUCTIONBid / Buy 1 w 0 dSTARTING BID 456.00 BUY NOW 550.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 456.0,
+      "total_landed_cost": 486.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/springfield-armory-xpm?i=758548"
+    },
+    {
+      "lot_id": "GU-2210e022",
+      "source_site": "Guns.com",
+      "title": "SMITH & WESSONModel 18-3.22 LR 6 Rounds 4 BarrelCondition USEDAdd To Cart 899.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 899.99,
+      "total_landed_cost": 929.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/smith-wesson-model-18-3?i=732176"
+    },
+    {
+      "lot_id": "GU-442fbe8a",
+      "source_site": "Guns.com",
+      "title": "PIETTASingle Action .44.44 MAGNUM 6 Rounds 5 BarrelCondition USEDAdd To Cart 2 249.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 2249.99,
+      "total_landed_cost": 2279.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/pietta-single-action-44?i=732360"
+    },
+    {
+      "lot_id": "GU-881060b0",
+      "source_site": "Guns.com",
+      "title": "PIETTASingle Action .44.44 MAGNUM 6 Rounds 5 BarrelCondition USEDAdd To Cart 2 249.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 2249.99,
+      "total_landed_cost": 2279.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/pietta-single-action-44?i=732365"
+    },
+    {
+      "lot_id": "GU-6b097a49",
+      "source_site": "Guns.com",
+      "title": "RUGERSECURITY-99 MM LUGER (9 x 19 PARA)15 Rounds 3 BarrelCondition USEDAdd To Cart 229.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 229.99,
+      "total_landed_cost": 259.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/ruger-security-9?i=779384"
+    },
+    {
+      "lot_id": "GU-45cbeebf",
+      "source_site": "Guns.com",
+      "title": "COLTMK IV SERIES 70 GOLD CUP NATIONAL MATCH.45 ACP 8 Rounds 5 BarrelCondition USEDAUCTIONBid 1 w 4 dSTARTING BID 1 099.00",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 1099.0,
+      "total_landed_cost": 1129.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/colt-mk-iv-series-70-gold-cup-national-match?i=710690"
+    },
+    {
+      "lot_id": "GU-8a073cf9",
+      "source_site": "Guns.com",
+      "title": "KAHR ARMSP 99 MM LUGER (9 x 19 PARA)7 Rounds 3.5 BarrelCondition USEDAdd To Cart 319.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 319.99,
+      "total_landed_cost": 349.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/kahr-arms-p9?i=779339"
+    },
+    {
+      "lot_id": "GU-6eef3da9",
+      "source_site": "Guns.com",
+      "title": "RUGERMARK IV 22/45.22 LR 10 Rounds 4 BarrelCondition USEDAdd To Cart 339.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 339.99,
+      "total_landed_cost": 369.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/ruger-mark-iv-22-45?i=779336"
+    },
+    {
+      "lot_id": "GU-949b36cf",
+      "source_site": "Guns.com",
+      "title": "SMITH & WESSONMODEL 442-2 AIRWEIGHT.38 SPL 5 Rounds 1.9 BarrelCondition USEDAdd To Cart 389.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 389.99,
+      "total_landed_cost": 419.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/smith-wesson-model-442-2-airweight?i=779326"
+    },
+    {
+      "lot_id": "GU-7933599f",
+      "source_site": "Guns.com",
+      "title": "SIMSON AND COMPANYP 08 German Luger PO 8 SUPER RARE 9 MM LUGER (9 x 19 PARA)8 Rounds 4 BarrelCondition USEDAUCTIONBid 1 w 4 dSTARTING BID 5 499.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 5499.99,
+      "total_landed_cost": 5529.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/simson-and-company-p08-german-luger-po8-super-rare?i=779253"
+    },
+    {
+      "lot_id": "GU-56cc4339",
+      "source_site": "Guns.com",
+      "title": "KIMBERPRO COVERT II 1911 45 ACP.45 ACP 10 Rounds 3.5 BarrelCondition USEDAdd To Cart 1 199.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 1199.99,
+      "total_landed_cost": 1229.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/kimber-pro-covert-ii-1911-45-acp?i=779194"
+    },
+    {
+      "lot_id": "GU-4b665ec2",
+      "source_site": "Guns.com",
+      "title": "GFORCE ARMSJAWBONE 9 MM LUGER (9 x 19 PARA)15 Rounds 8 BarrelCondition USEDAUCTIONBid 1 w 4 dCURRENT BID (7) 380.00",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 380.0,
+      "total_landed_cost": 410.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/gforce-arms-jawbone?i=779168"
+    },
+    {
+      "lot_id": "GU-1b3da29f",
+      "source_site": "Guns.com",
+      "title": "HI-POINT 4595 TS.45 ACP 10 Rounds 12 BarrelCondition USEDAUCTIONBid 1 w 4 dSTARTING BID 160.00",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 160.0,
+      "total_landed_cost": 190.0,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/hi-point-4595ts?i=779163"
+    },
+    {
+      "lot_id": "GU-653d39c3",
+      "source_site": "Guns.com",
+      "title": "COLTgovernment.22 LR 8 Rounds 4 BarrelCondition USEDAdd To Cart 549.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 549.99,
+      "total_landed_cost": 579.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/colt-government?i=779162"
+    },
+    {
+      "lot_id": "GU-fd539f28",
+      "source_site": "Guns.com",
+      "title": "BROWNINGHI POWER 9 MM LUGER (9 x 19 PARA)15 Rounds 4.5 BarrelCondition USEDAdd To Cart 1 149.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 1149.99,
+      "total_landed_cost": 1179.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/browning-hi-power?i=779113"
+    },
+    {
+      "lot_id": "GU-b1e19961",
+      "source_site": "Guns.com",
+      "title": "HECKLER & KOCHVP 9 SK 9 MM LUGER (9 x 19 PARA)3.4 BarrelCondition USEDAdd To Cart 1 199.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 1199.99,
+      "total_landed_cost": 1229.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/heckler-koch-vp9sk?i=779124"
+    },
+    {
+      "lot_id": "GU-6db3c235",
+      "source_site": "Guns.com",
+      "title": "HECKLER & KOCHP 2000 SK 9 MM LUGER (9 x 19 PARA)10 Rounds 3.6 BarrelDOUBLE ACTIONCondition USEDAdd To Cart 899.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 899.99,
+      "total_landed_cost": 929.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/heckler-koch-p2000sk?i=779121"
+    },
+    {
+      "lot_id": "GU-0a614305",
+      "source_site": "Guns.com",
+      "title": "HECKLER & KOCHVP 9 Match 9 MM LUGER (9 x 19 PARA)20 Rounds 5.5 BarrelCondition USEDAdd To Cart 1 499.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 1499.99,
+      "total_landed_cost": 1529.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/heckler-koch-vp9-match?i=779115"
+    },
+    {
+      "lot_id": "GU-a939c572",
+      "source_site": "Guns.com",
+      "title": "TAURUS 66 STAINLESS STEEL.357 MAG 6 Rounds 6 BarrelCondition USEDAdd To Cart 399.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 399.99,
+      "total_landed_cost": 429.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/taurus-66-stainless-steel?i=779137"
+    },
+    {
+      "lot_id": "GU-ddace16c",
+      "source_site": "Guns.com",
+      "title": "HERITAGE MFG.HERITAGE ROUGH RIDER.22 LR 6 Rounds 6 BarrelCondition USEDAdd To Cart 129.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 129.99,
+      "total_landed_cost": 159.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/heritage-mfg-heritage-rough-rider?i=779126"
+    },
+    {
+      "lot_id": "GU-a7f8e5fd",
+      "source_site": "Guns.com",
+      "title": "BERETTAPX 4 STORM SUB COMPACT 9 MM LUGER (9 x 19 PARA)13 Rounds 3 BarrelCondition USEDAdd To Cart 459.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 459.99,
+      "total_landed_cost": 489.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/beretta-px4-storm-sub-compact?i=779098"
+    },
+    {
+      "lot_id": "GU-2537c043",
+      "source_site": "Guns.com",
+      "title": "SMITH & WESSONSD 40 VE.40 S&W 15 Rounds 3.5 BarrelCondition USEDAdd To Cart 198.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 198.99,
+      "total_landed_cost": 228.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/smith-wesson-sd40-ve?i=779094"
+    },
+    {
+      "lot_id": "GU-cbff38a1",
+      "source_site": "Guns.com",
+      "title": "TAURUSG 2 S 9 MM LUGER (9 x 19 PARA)7 Rounds 3 BarrelCondition USEDAdd To Cart 239.99",
+      "make": "General",
+      "model": "Unknown",
+      "current_bid": 239.99,
+      "total_landed_cost": 269.99,
+      "valuation_sources": {
+        "triangulated_avg": 0.0
+      },
+      "federal_retail": 0.0,
+      "federal_profit": 0.0,
+      "ma_retail": 0.0,
+      "ma_profit": 0.0,
+      "ma_margin": 0.0,
+      "is_pre_ban": false,
+      "compliance_badge": "Unvalued",
+      "listing_url": "https://www.guns.com/used-guns/p/taurus-g2s?i=779077"
+    }
+  ]
+}
