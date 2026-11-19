@@ -43,10 +43,10 @@ _ART = (
     '<path d="M320 8V372M138 190H502" stroke-width="1.5" stroke-dasharray="6 8"/>'
     '</g>'
     # pistol silhouette (generic, original)
-    '<g transform="translate(150 70)">'
+    '<g transform="translate(205 52) scale(0.8)">'
     '<path d="M10 40 H250 Q268 40 268 58 V76 H150 L142 96 Q122 120 94 112 L82 112 L70 198 '
     'Q68 210 54 210 H18 Q4 210 6 196 L28 76 H10 Q0 76 0 66 V50 Q0 40 10 40 Z" fill="url(#metal)"/>'
-    '<path d="M82 112 Q100 134 134 120 L142 100" fill="none" stroke="#0b1220" stroke-width="7"/>'
+    '<path d="M88 114 Q92 142 128 138 Q148 134 150 100" fill="none" stroke="#0b1220" stroke-width="6"/>'
     '<rect x="14" y="48" width="240" height="6" rx="3" fill="#0b1220" opacity="0.35"/>'
     '<g stroke="#0b1220" stroke-width="3" opacity="0.5">'
     '<path d="M182 48V70M192 48V70M202 48V70M212 48V70M222 48V70"/>'
@@ -56,7 +56,7 @@ _ART = (
     '<path d="M36 100 L28 150 M44 100 L36 150 M52 100 L44 150" stroke="#0b1220" stroke-width="3" opacity="0.4"/>'
     '</g>'
     # rifle silhouette (generic, original)
-    '<g transform="translate(40 290)" opacity="0.9">'
+    '<g transform="translate(34 306) scale(0.88)" opacity="0.9">'
     '<polygon points="10,40 200,16 200,42 168,50 146,84 28,92 8,80" fill="url(#metal2)"/>'
     '<rect x="196" y="12" width="100" height="32" rx="5" fill="url(#metal2)"/>'
     '<rect x="294" y="22" width="300" height="10" rx="3" fill="url(#metal2)"/>'
