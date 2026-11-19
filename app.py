@@ -791,6 +791,125 @@ def render_dashboard(items, key):
     st.markdown(table_html(items[start:end]), unsafe_allow_html=True)
 
 
+# ---------------- LIVE WEB SEARCH (Find a Gun tab only) ----------------
+WEB_BLOCKED = ("youtube.com", "youtu.be", "pinterest.com", "facebook.com", "instagram.com", "tiktok.com", "wikipedia.org", "twitter.com", "x.com")
+
+
+@st.cache_resource
+def _web_store():
+    return {"cache": {}, "day": "", "n": 0}
+
+
+def _price_from(text):
+    m = re.search(r"\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{2}))?", str(text or ""))
+    if not m:
+        return None
+    val = float(m.group(1).replace(",", "") + ("." + m.group(2) if m.group(2) else ""))
+    return val if 50 <= val <= 25000 else None
+
+
+def web_search(query):
+    """One live search per call, cached for 6 hours. Returns {'rows': [...]} or {'error': '...'}."""
+    import time
+    from urllib.parse import urlparse
+    store = _web_store()
+    ck = _norm(query)
+    hit = store["cache"].get(ck)
+    if hit and time.time() - hit[0] < 21600:
+        return hit[1]
+    key = get_secret("SCRAPER_API_KEY")
+    if not key:
+        return {"error": "Live web search is not set up yet."}
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    if store["day"] != today:
+        store["day"], store["n"] = today, 0
+    try:
+        cap = int(get_secret("WEB_SEARCH_DAILY_CAP") or 40)
+    except Exception:
+        cap = 40
+    if store["n"] >= cap:
+        return {"error": "Today's live web search limit has been reached. Please try again tomorrow."}
+    store["n"] += 1
+    try:
+        import requests
+        r = requests.get(
+            "https://api.scraperapi.com/structured/google/search",
+            params={"api_key": key, "query": query + " gun for sale price", "country_code": "us", "num": 20},
+            timeout=60,
+        )
+        if r.status_code != 200:
+            return {"error": f"The web search service returned an error ({r.status_code}). Please try again in a moment."}
+        data = r.json()
+    except Exception:
+        return {"error": "The web search timed out or failed. Please try again in a moment."}
+    rows, seen = [], set()
+
+    def add(title, link, snippet, price_hint):
+        link = str(link or "").strip()
+        title = str(title or "").strip()
+        if not link.lower().startswith(("http://", "https://")) or not title:
+            return
+        host = (urlparse(link).netloc or "").lower().replace("www.", "")
+        if not host or any(host == b or host.endswith("." + b) for b in WEB_BLOCKED):
+            return
+        if link in seen:
+            return
+        seen.add(link)
+        price = _price_from(price_hint) or _price_from(title) or _price_from(snippet)
+        rows.append({"title": title, "link": link, "host": host, "snippet": str(snippet or "").strip(), "price": price})
+
+    for it in (data.get("shopping_results") or []):
+        if isinstance(it, dict):
+            add(it.get("title"), it.get("link") or it.get("product_link") or it.get("url"), it.get("snippet") or it.get("source"), it.get("price") or it.get("extracted_price"))
+    for it in (data.get("organic_results") or []):
+        if isinstance(it, dict):
+            add(it.get("title"), it.get("link") or it.get("url"), it.get("snippet") or it.get("description"), None)
+    toks = _norm(query).split()
+    strict = [x for x in rows if all(t in _norm(x["title"] + " " + x["snippet"] + " " + x["link"]) for t in toks)]
+    rows = strict if len(strict) >= 3 else rows
+    rows.sort(key=lambda x: (x["price"] is None, x["price"] or 0.0))
+    out = {"rows": rows[:25]}
+    store["cache"][ck] = (time.time(), out)
+    return out
+
+
+def render_web_search(query):
+    st.markdown("#### Search outside our tracked sites")
+    st.caption(
+        "Runs a live web search for this gun on other retailers and classifieds. Results are unverified, "
+        "are not part of our valuation, and use a limited number of searches per day."
+    )
+    if st.button("Search the web for this gun", key="find_web_btn"):
+        with st.spinner("Searching the web..."):
+            st.session_state["web_hits"] = {"q": query, "res": web_search(query)}
+    hit = st.session_state.get("web_hits")
+    if not hit or hit.get("q") != query:
+        return
+    res = hit.get("res") or {}
+    if res.get("error"):
+        st.warning(res["error"])
+        return
+    rows = res.get("rows") or []
+    if not rows:
+        st.info("The web search did not find anything for that gun. Try a simpler name.")
+        return
+    cards = []
+    for x in rows:
+        price = f'<div style="color:#a3e635;font-weight:800;font-size:1.05rem;white-space:nowrap">{usd(x["price"])}</div>' if x["price"] else '<div style="color:#7d8ca3;font-size:.8rem;white-space:nowrap">see site</div>'
+        snip = f'<div style="color:#94a3b8;font-size:.78rem;margin-top:2px">{esc(x["snippet"][:180])}</div>' if x["snippet"] else ""
+        cards.append(
+            '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;margin:6px 0;border:1px solid #1f3a57;border-radius:12px;background:#0b1626">'
+            '<div style="flex:1 1 260px;min-width:0">'
+            f'<div style="color:#7d8ca3;font-size:.72rem;letter-spacing:.04em">{esc(x["host"])}</div>'
+            f'<a href="{esc(x["link"])}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;font-weight:700;text-decoration:none">{esc(x["title"][:140])}</a>'
+            f'{snip}</div>{price}'
+            f'<a href="{esc(x["link"])}" target="_blank" rel="noopener noreferrer" style="color:#04130a;background:linear-gradient(135deg,#22c55e,#a3e635);padding:6px 12px;border-radius:10px;font-weight:800;font-size:.8rem;text-decoration:none">Open &#8599;</a>'
+            "</div>"
+        )
+    st.markdown("".join(cards), unsafe_allow_html=True)
+    st.caption("Prices come from the search result text and may be out of date or not the final price. Check the listing, and remember that every firearm transfer must go through a licensed FFL.")
+
+
 def _norm(s):
     return re.sub(r"[^a-z0-9]+", " ", str(s).lower()).strip()
 
@@ -842,7 +961,8 @@ def render_find_gun():
     else:
         items.sort(key=lambda l: (num(l.get("total_landed_cost")) <= 0, num(l.get("total_landed_cost"))))
     if not items:
-        st.warning("No listings match that search right now. Try fewer words (for example just the make and model number), or check the spelling.")
+        st.warning("No tracked listings match that search right now. Try fewer words (for example just the make and model number), or search the wider web below.")
+        render_web_search(query)
         return
     landed = sorted(num(l.get("total_landed_cost")) for l in items if num(l.get("total_landed_cost")) > 0)
     low = landed[0] if landed else 0.0
@@ -867,6 +987,7 @@ def render_find_gun():
     )
     if cheapest is not None:
         st.caption(f"Cheapest: {gun_name(cheapest)} at {cheapest.get('source_site') or 'Direct'} for {usd(low)} landed.  Showing {len(items)} listing(s) for \"{query}\".")
+    render_web_search(query)
     st.markdown(table_html(items), unsafe_allow_html=True)
 
 
