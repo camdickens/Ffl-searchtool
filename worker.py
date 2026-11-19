@@ -44,11 +44,14 @@ BRANDS = [
     "Auto-Ordnance", "Uberti", "Cimarron", "Taylor's", "Chiappa", "Franchi", "Rossi", "Lorcin",
     "Jennings", "Bryco", "Davis", "Phoenix Arms", "Iver Johnson", "High Standard", "Llama", "Astra",
     "Star", "Makarov", "Tokarev", "Luger", "Sig", "S&W",
+    "Heckler and Koch", "Smith and Wesson", "Radom", "Altor Corp", "Altor", "Derya", "DPMS", "Zenith Firearms",
+    "Polish", "Sar Arms", "SAR", "Girsan", "Mkm", "Hungarian", "Romanian", "Glock Inc",
 ]
 BRANDS.sort(key=len, reverse=True)
 BRAND_ALIASES = {"s&w": "Smith & Wesson", "sig": "Sig Sauer", "hk": "Heckler & Koch",
                  "hi point": "Hi-Point", "ati": "ATI", "cz": "CZ", "fn": "FN", "fnh": "FN",
-                 "iwi": "IWI", "sccy": "SCCY"}
+                 "iwi": "IWI", "sccy": "SCCY", "heckler and koch": "Heckler & Koch",
+                 "smith and wesson": "Smith & Wesson", "dpms": "DPMS", "altor corp": "Altor Corp"}
 
 SITE_CONFIGS = {
     "Guns.com": {
@@ -79,6 +82,22 @@ MODEL_CUT_RE = re.compile(
     re.IGNORECASE)
 
 
+PARTS_FOR_RE = re.compile(
+    r"\bfor\s+(?:the\s+)?(?:glock|sig|smith|s&w|ruger|1911|beretta|cz\b|springfield|hk\b|walther|taurus|ar-?15|ak-?47)",
+    re.IGNORECASE)
+PARTS_MAKERS = ("sct manufacturing", "magpul", "midwest industries", "hogue", "pearce grip", "crimson trace",
+                "ghost inc", "apex tactical", "zev technologies parts")
+
+
+def is_gun_listing(title: str) -> bool:
+    low = (title or "").lower()
+    if any(low.startswith(p) for p in PARTS_MAKERS):
+        return False
+    if PARTS_FOR_RE.search(low):
+        return False
+    return True
+
+
 def squash(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "")).strip()
 
@@ -103,9 +122,12 @@ def split_make_model(title: str, make_hint: str = "", model_hint: str = ""):
     if make_hint:
         make = pretty_brand(make_hint)
         model = squash(model_hint)
+        parts = [re.escape(p) for p in re.split(r"\s*&\s*|\s+and\s+", make_hint, flags=re.IGNORECASE)]
+        pat = r"^" + r"\s*(?:&|and)\s*".join(parts)
         if not model:
-            rest = re.sub(r"^" + re.escape(make_hint), "", title, flags=re.IGNORECASE).strip()
-            model = rest
+            model = title
+        model = re.sub(pat, "", model, flags=re.IGNORECASE).strip(" -:,")
+        model = re.sub(r"^(?:and\s+koch|and\s+wesson)\b", "", model, flags=re.IGNORECASE).strip(" -:,")
         return make, trim_model(model)
 
     low = title.lower()
@@ -203,14 +225,22 @@ def build_lot(src, title, make, model, ask_price, url, caliber="", is_auction=Fa
     return lot
 
 
+def caliber_key(cal: str) -> str:
+    m = re.search(r"\d+(?:\.\d+)?", cal or "")
+    if not m:
+        return ""
+    base = m.group(0).replace(".", "")
+    return base + ("mm" if "mm" in (cal or "").lower() else "")
+
+
 def model_key(lot: dict) -> str:
     make = re.sub(r"[^a-z0-9]", "", str(lot.get("make", "")).lower())
     mtxt = re.sub(r"\bgen\.?\s?\d\b", " ", str(lot.get("model", "")).lower())
-    toks = re.findall(r"[a-z0-9\-]+", mtxt)
-    toks = [t for t in toks if t not in ("unknown", "model")][:2]
+    toks = re.findall(r"[a-z0-9][a-z0-9\-\.&/]*", mtxt)
+    toks = [t for t in toks if t not in ("unknown", "model")][:3]
     if not make or not toks:
         return ""
-    return make + "|" + " ".join(toks)
+    return make + "|" + " ".join(toks) + "|" + caliber_key(lot.get("caliber", ""))
 
 
 def apply_peer_comps(lots):
@@ -264,7 +294,7 @@ def fetch_gunbroker_api(keywords="pistol", page_size=48):
         except (TypeError, ValueError):
             continue
         title = it.get("title", "")
-        if price < 50.0 or len(title) < 5:
+        if price < 50.0 or len(title) < 5 or not is_gun_listing(title):
             continue
         link = f"https://www.gunbroker.com/item/{it.get('itemID')}"
         t = clean_title(title)
@@ -381,7 +411,7 @@ def scrape_target(site_name, task_url):
         except Exception as e:
             print(f"[{site_name}] parse error: {e}")
             item = None
-        if not item or item["price"] < 50.0:
+        if not item or item["price"] < 50.0 or not is_gun_listing(item["title"]):
             dropped += 1
             continue
         lots.append(build_lot(site_name, item["title"], item["make"], item["model"], item["price"],
