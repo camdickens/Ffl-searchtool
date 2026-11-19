@@ -2,7 +2,7 @@ name: Deal Radar Worker
 
 on:
   schedule:
-    - cron: "17,47 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -36,11 +36,11 @@ jobs:
 
       - name: Commit updated feed
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "deal-radar-bot"
+          git config user.email "deal-radar-bot@users.noreply.github.com"
           if [ -f feed_data.json ]; then git add feed_data.json; fi
           if git diff --staged --quiet; then
-            echo "No feed changes to commit."
+            echo "No feed changes to commit"
           else
             git commit -m "Auto-update live feed [skip ci] [skip render]"
             git pull --rebase origin main
