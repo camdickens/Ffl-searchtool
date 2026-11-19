@@ -365,7 +365,7 @@ PRIVACY_MD = """
 
 **Who we share it with.** Only the service providers that make the Service run: Google (sign-in), Stripe (payments and subscription records), Render (hosting) and GitHub (code and data feed). We do not sell your personal information, and we do not share it for advertising. We may disclose information if the law requires it.
 
-**Cookies.** We use only the cookies needed to keep you signed in. We do not use advertising or cross-site tracking cookies.
+**Cookies.** We use only the cookies needed to keep you signed in. We do not use advertising or cross-site tracking cookies. See the Cookie Policy tab for details.
 
 **Keeping and deleting.** We keep your sign-in details only as long as needed to run your access. Stripe keeps billing records as required by law. To ask for a copy of your information or for it to be deleted, email SUPPORT_MAIL.
 
@@ -409,15 +409,39 @@ FFL Deal Radar is an information tool only.
 """
 
 
+COOKIES_MD = """
+**Cookie Policy** (last updated LEGAL_DATE)
+
+**What cookies are.** Cookies are small files that a website stores in your browser so it can remember things between page loads.
+
+**What we use.** FFL Deal Radar uses only the cookies that are strictly necessary to run the Service:
+
+- **Sign-in session cookie.** Keeps you signed in after you log in with Google, so you do not have to sign in on every page.
+- **Security cookie.** Helps protect your session and the Service from forged or malicious requests.
+
+These cookies are not used for advertising, tracking or building a profile of you. They are normally removed when your session ends or when you sign out, or after a short fixed period.
+
+**What we do not use.** We do not use advertising cookies, cross-site tracking cookies, or third-party analytics cookies.
+
+**Third-party cookies.** When you sign in with Google or pay through Stripe, you are on pages run by Google or Stripe. Those companies set their own cookies under their own policies. We do not control them. Please review the cookie and privacy policies of Google and Stripe for details.
+
+**Your choices.** You can block or delete cookies in your browser settings. If you block the sign-in or security cookies, you will not be able to sign in or use the Service.
+
+**Contact.** Questions about cookies: SUPPORT_MAIL
+""".replace("LEGAL_DATE", LEGAL_UPDATED).replace("SUPPORT_MAIL", SUPPORT_EMAIL)
+
+
 def render_legal_tabs():
-    t1, t2, t3, t4 = st.tabs(["Terms of Service", "Privacy Policy", "Subscription and refunds", "Disclaimer"])
+    t1, t2, t3, t4, t5 = st.tabs(["Terms of Service", "Privacy Policy", "Cookie Policy", "Subscription and refunds", "Disclaimer"])
     with t1:
         st.markdown(TERMS_MD)
     with t2:
         st.markdown(PRIVACY_MD)
     with t3:
-        st.markdown(SUBSCRIPTION_MD)
+        st.markdown(COOKIES_MD)
     with t4:
+        st.markdown(SUBSCRIPTION_MD)
+    with t5:
         st.markdown(DISCLAIMER_MD)
 
 
@@ -425,7 +449,7 @@ def render_footer():
     st.markdown(
         '<div style="margin:26px 0 8px 0; padding:14px 4px 0 4px; border-top:1px solid #1f3a57; color:#7d8ca3; font-size:.72rem; line-height:1.55;">'
         + esc(DISCLAIMER_SHORT)
-        + " See the Legal tab for the Terms of Service and Privacy Policy.</div>",
+        + " See the Legal tab for the Terms of Service, Privacy Policy and Cookie Policy.</div>",
         unsafe_allow_html=True,
     )
 
@@ -461,7 +485,7 @@ def render_paywall(email, err=False, manual=False):
         '<li>Massachusetts and federal compliance views</li>'
         '<li>Cancel any time before the trial ends and pay nothing</li></ul>'
         f'<a class="gobtn" href="{esc(link)}" target="_self">Start my free week &rarr;</a></div>'
-        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe. By starting your free week you agree to the Terms of Service and Privacy Policy, linked below.'
+        f'<div class="fine">Signed in as {esc(email)}. Use this same email at checkout. Payments are handled by Stripe. By starting your free week you agree to the Terms of Service, Privacy Policy and Cookie Policy, linked below.'
         + (" After you subscribe, we activate your access by hand, usually within a few hours." if manual else "")
         + "</div></div>",
         unsafe_allow_html=True,
@@ -474,7 +498,7 @@ def render_paywall(email, err=False, manual=False):
         st.rerun()
     if c2.button("Sign out", use_container_width=True):
         st.logout()
-    with st.expander("Terms of Service, Privacy Policy and Disclaimers"):
+    with st.expander("Terms of Service, Privacy Policy, Cookie Policy and Disclaimers"):
         render_legal_tabs()
     render_footer()
 
