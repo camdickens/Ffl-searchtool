@@ -1,8 +1,10 @@
 import os
 import json
+import math
 import traceback
 from datetime import datetime
 import pandas as pd
+import altair as alt
 import streamlit as st
 
 st.set_page_config(page_title="FFL Deal Radar", page_icon="🎯", layout="wide")
@@ -26,8 +28,14 @@ CRON_TOKEN = get_secret("CRON_TOKEN")
 
 ALL_PLATFORMS = [
     "GunBroker", "HiBid", "Armslist", "Guns.com", "GunsAmerica",
-    "Buds Gun Shop", "Sportsman's Outdoor Superstore", "Tacswap", "UsedGuns.com"
+    "Buds Gun Shop", "Sportsman's Outdoor Superstore", "Tacswap", "UsedGuns.com",
+    "Classic Firearms",
 ]
+
+GREEN = "#22c55e"
+RED = "#ef4444"
+BLUE = "#38bdf8"
+AMBER = "#f59e0b"
 
 
 def num(value, default=0.0):
@@ -37,16 +45,39 @@ def num(value, default=0.0):
         return default
 
 
+# ---------------- STYLE: compact, dark, no page scroll ----------------
 st.markdown(
     """
 <style>
-div[data-testid="stDataFrame"] { width: 100% !important; }
-div[data-testid="stDataFrame"] > div { max-height: none !important; }
+header[data-testid="stHeader"] { display: none; }
+footer { visibility: hidden; }
+.block-container { padding: 0.6rem 1.4rem 0 1.4rem !important; max-width: 100% !important; }
+section[data-testid="stSidebar"] > div { padding-top: 0.6rem; }
+div[data-testid="stVerticalBlock"] { gap: 0.45rem; }
+.hero { display:flex; align-items:center; justify-content:space-between;
+        background: linear-gradient(90deg,#0f172a 0%,#1e293b 60%,#0b3b2e 100%);
+        border:1px solid #1f2a3c; border-radius:12px; padding:10px 18px; margin-bottom:4px; }
+.hero h1 { font-size:1.35rem; margin:0; padding:0; color:#f1f5f9; letter-spacing:.3px; }
+.hero .sub { color:#94a3b8; font-size:.78rem; }
+.pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem;
+        background:#14532d; color:#bbf7d0; margin-left:8px; }
+.kpi { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:8px 14px; }
+.kpi .lbl { color:#94a3b8; font-size:.70rem; text-transform:uppercase; letter-spacing:.8px; }
+.kpi .val { color:#f8fafc; font-size:1.45rem; font-weight:700; line-height:1.25; }
+.kpi .val.good { color:#22c55e; }
+.kpi .val.blue { color:#38bdf8; }
+.kpi .val.amber { color:#f59e0b; }
+.charttitle { color:#cbd5e1; font-size:.8rem; font-weight:600; margin:2px 0 -6px 2px; }
+button[data-baseweb="tab"] { padding: 4px 14px !important; }
+div[data-testid="stTabs"] { margin-top: -4px; }
+div[data-testid="stDataFrame"] { border:1px solid #1f2937; border-radius:10px; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ---------------- OPTIONAL MANUAL SCRAPE TRIGGER ----------------
-# Disabled unless CRON_TOKEN is configured. Scheduled scraping now runs in GitHub Actions.
+# Disabled unless CRON_TOKEN is configured. Scheduled scraping runs in GitHub Actions.
 params = st.query_params
 if CRON_TOKEN and params.get("task") == "scrape" and params.get("token") == CRON_TOKEN:
     try:
@@ -104,40 +135,44 @@ if not ALLOWED_EMAILS or user_email not in ALLOWED_EMAILS or not email_verified:
     st.button("Sign out", on_click=st.logout)
     st.stop()
 
-# ---------------- DEALER DASHBOARD ----------------
-with st.sidebar:
-    st.title("🎯 FFL Radar")
-    st.success("🟢 100% Verified Live Links")
-    st.caption("Operator: `camerondickens9000@gmail.com`")
+# ---------------- LOAD DATA ----------------
+feed = get_feed()
+all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
 
+# ---------------- SIDEBAR FILTERS ----------------
+with st.sidebar:
+    st.markdown("### 🎯 FFL Radar")
     st.caption(f"Signed in as {user_email}")
     if st.button("🚪 Sign out", use_container_width=True):
         st.logout()
 
-    st.divider()
-    active_view = st.radio("Select Section", ["📋 All Inventory Feed", "🔨 Live Auctions", "🔔 Push Alerts", "⚙️ System Status"])
-    st.divider()
-
-    mode = st.radio("Legal Framework", ["Massachusetts Compliant", "Federal Standard"])
+    mode = st.radio("Legal framework", ["Massachusetts Compliant", "Federal Standard"], horizontal=False)
     is_ma = (mode == "Massachusetts Compliant")
 
-    selected_sources = st.multiselect("Source Platforms", ALL_PLATFORMS, default=ALL_PLATFORMS)
+    present_sources = sorted({str(l.get("source_site")) for l in all_lots if l.get("source_site")})
+    source_options = sorted(set(ALL_PLATFORMS) | set(present_sources))
+    selected_sources = st.multiselect("Source platforms", source_options, default=present_sources or source_options)
 
-    st.caption("Profitability thresholds (default wide open):")
-    min_profit = st.slider("Min Net Spread ($)", -300, 800, -300, 25)
-    min_margin = st.slider("Min Margin (%)", -100, 70, -100, 5)
-    max_cost = st.number_input("Max Purchase / Bid ($)", min_value=0, value=5000, step=250)
-    action_only = st.checkbox("Show 'BID' Targets Only", value=False)
-    pre_ban_only = st.checkbox("Pre-Ban Grandfathered Only", value=False) if is_ma else False
-    search_query = st.text_input("🔍 Search Keyword", "").strip().lower()
+    search_query = st.text_input("🔍 Search keyword", "").strip().lower()
 
-h1, h2 = st.columns([3, 1])
-h1.title(f"{active_view} — {mode}")
+    makes = sorted({str(l.get("make") or "").title() for l in all_lots if l.get("make")})
+    selected_makes = st.multiselect("Brand / make", makes, default=[])
 
-feed = get_feed()
-all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
-st.caption(f"⚡ Live Sync • Last updated: **{feed.get('last_updated', 'Just now')}** • Triangulated Comps (GunBroker + Guns.com + GunsAmerica)")
+    listing_type = st.radio("Listing type", ["All", "Auctions", "Buy-It-Now"], horizontal=True)
 
+    prices = [num(l.get("current_bid")) for l in all_lots]
+    p_max = int(max(prices)) if prices else 5000
+    p_max = max(100, int(math.ceil(p_max / 100.0) * 100))
+    price_range = st.slider("Price range ($)", 0, p_max, (0, p_max), 25)
+
+    min_profit = st.slider("Min net spread ($)", -300, 800, -300, 25)
+    min_margin = st.slider("Min margin (%)", -100, 70, -100, 5)
+    action_only = st.checkbox("Show 'BID' targets only", value=False)
+    pre_ban_only = st.checkbox("Pre-ban grandfathered only", value=False) if is_ma else False
+
+    sort_by = st.selectbox("Sort by", ["Best net spread", "Highest margin", "Lowest price", "Highest price", "Source A-Z"])
+
+# ---------------- ENRICH ----------------
 for l in all_lots:
     l["disp_retail"] = num(l.get("ma_retail") if is_ma else l.get("federal_retail"))
     l["disp_profit"] = num(l.get("ma_profit") if is_ma else l.get("federal_profit"))
@@ -145,51 +180,21 @@ for l in all_lots:
     l["disp_act"] = bool(l.get("actionable_ma") if is_ma else l.get("actionable_federal"))
     l["is_auction"] = l.get("source_site") in ["GunBroker", "HiBid"] or "bid" in str(l.get("title", "")).lower()
 
-
-def render_feed_table(items, empty_msg):
-    st.write(f"Showing **{len(items)}** verified active items out of **{len(all_lots)}** total scraped.")
-    if items:
-        rows = []
-        for lot in items:
-            spread = lot.get("disp_profit", 0.0)
-            v = lot.get("valuation_sources") or {}
-            rows.append({
-                "Signal": "🟢 BID" if lot.get("disp_act") else "⚪ PASS",
-                "Source": lot.get("source_site", "Direct"),
-                "Type": "🔨 Auction" if lot.get("is_auction") else "🏷️ Buy-It-Now",
-                "Model": f"{str(lot.get('make') or '').title()} {str(lot.get('model') or '').title()}",
-                "Ask / Bid": f"${num(lot.get('current_bid')):.2f}",
-                "Total Landed": f"${num(lot.get('total_landed_cost')):.2f}",
-                "Triangulated Value": f"${lot.get('disp_retail', 0):.2f}",
-                "Net Spread": f"{'+' if spread >= 0 else ''}${spread:.2f}",
-                "Margin": f"{lot.get('disp_margin', 0):.1f}%",
-                "Comps (GB/GC/GA)": f"${num(v.get('gunbroker_past_sold')):.0f} / ${num(v.get('guns_com_used_retail')):.0f} / ${num(v.get('market_comp')):.0f}",
-                "Max Bid": f"${num(lot.get('max_bid')):.2f}",
-                "Badge": lot.get("compliance_badge", "Title 1"),
-                "Link": lot.get("listing_url", "#")
-            })
-
-        df = pd.DataFrame(rows)
-        st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            height=int((len(rows) + 1) * 36 + 15),
-            column_config={"Link": st.column_config.LinkColumn("Direct Listing", display_text="Open Lot ↗")}
-        )
-    else:
-        st.warning(empty_msg)
-
-
+# ---------------- FILTER ----------------
 filtered_lots = []
 for l in all_lots:
     if selected_sources and l.get("source_site") not in selected_sources:
         continue
-    if l["disp_profit"] < min_profit:
+    if selected_makes and str(l.get("make") or "").title() not in selected_makes:
         continue
-    if l["disp_margin"] < min_margin:
+    if listing_type == "Auctions" and not l["is_auction"]:
         continue
-    if num(l.get("current_bid")) > max_cost:
+    if listing_type == "Buy-It-Now" and l["is_auction"]:
+        continue
+    price = num(l.get("current_bid"))
+    if price < price_range[0] or price > price_range[1]:
+        continue
+    if l["disp_profit"] < min_profit or l["disp_margin"] < min_margin:
         continue
     if action_only and not l["disp_act"]:
         continue
@@ -200,30 +205,163 @@ for l in all_lots:
         continue
     filtered_lots.append(l)
 
-if active_view == "📋 All Inventory Feed":
-    render_feed_table(filtered_lots, "No listings match the current filters.")
-elif active_view == "🔨 Live Auctions":
-    auction_items = [l for l in filtered_lots if l.get("is_auction")]
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Live Auction Lots", f"{len(auction_items)} Items")
-    avg_spread = sum(l["disp_profit"] for l in auction_items) / len(auction_items) if auction_items else 0.0
-    m2.metric("Average Auction Spread", f"${avg_spread:.2f}")
-    m3.metric("Top Auction Margin", f"{max([l['disp_margin'] for l in auction_items], default=0.0):.1f}%")
-    render_feed_table(auction_items, "No auction listings match the current filters.")
-elif active_view == "🔔 Push Alerts":
-    st.subheader("🔔 Instant Arbitrage Alerts")
-    st.write("Alert Destination: `camerondickens9000@gmail.com`")
-    st.number_input("Target Profit Spread Threshold ($)", value=100.0, step=25.0)
-    if st.button("Save Alert Threshold", use_container_width=True):
-        st.success("Alert preferences updated.")
-elif active_view == "⚙️ System Status":
-    st.subheader("System Infrastructure")
-    st.write(f"**Connected Sources:** {len(ALL_PLATFORMS)} Platforms")
-    st.write(f"**Total Individual Listings:** {len(all_lots)} Items")
-    st.write(f"**Feed Status:** `feed_data.json` ({'Healthy' if len(all_lots) > 0 else 'Sync Required'})")
-    st.caption("The feed is refreshed on a schedule by a GitHub Actions workflow (every 30 minutes).")
+sorters = {
+    "Best net spread": (lambda l: l["disp_profit"], True),
+    "Highest margin": (lambda l: l["disp_margin"], True),
+    "Lowest price": (lambda l: num(l.get("current_bid")), False),
+    "Highest price": (lambda l: num(l.get("current_bid")), True),
+    "Source A-Z": (lambda l: str(l.get("source_site") or ""), False),
+}
+_key, _rev = sorters[sort_by]
+filtered_lots.sort(key=_key, reverse=_rev)
 
-    if st.button("🔄 Force Immediate Organic Re-Sync", use_container_width=True):
+# ---------------- HEADER ----------------
+st.markdown(
+    f"""
+<div class="hero">
+  <div><h1>🎯 FFL Deal Radar<span class="pill">● LIVE</span></h1>
+  <div class="sub">{mode} &nbsp;•&nbsp; Last updated {feed.get('last_updated', 'just now')} &nbsp;•&nbsp; refreshed hourly</div></div>
+  <div class="sub">{len(filtered_lots)} of {len(all_lots)} listings shown</div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+
+def kpi(col, label, value, cls=""):
+    col.markdown(
+        f'<div class="kpi"><div class="lbl">{label}</div><div class="val {cls}">{value}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_dashboard(items, key, empty_msg):
+    n = len(items)
+    bids = sum(1 for l in items if l["disp_act"])
+    best = max((l["disp_profit"] for l in items), default=0.0)
+    avg_margin = (sum(l["disp_margin"] for l in items) / n) if n else 0.0
+    auctions = sum(1 for l in items if l["is_auction"])
+
+    k1, k2, k3, k4, k5 = st.columns(5)
+    kpi(k1, "Listings", f"{n}", "blue")
+    kpi(k2, "BID targets", f"{bids}", "good")
+    kpi(k3, "Best net spread", f"${best:,.0f}", "good" if best > 0 else "")
+    kpi(k4, "Avg margin", f"{avg_margin:.1f}%", "amber")
+    kpi(k5, "Auctions", f"{auctions}", "")
+
+    if not items:
+        st.warning(empty_msg)
+        return
+
+    left, right = st.columns([2.3, 1])
+
+    # ----- table (paginated so it always fits the screen) -----
+    with left:
+        c1, c2, c3 = st.columns([2.2, 1, 1])
+        page_size = c2.selectbox("Rows", [8, 10, 12, 15, 20], index=1, key=f"ps_{key}", label_visibility="collapsed")
+        pages = max(1, math.ceil(n / page_size))
+        page = c3.number_input("Page", min_value=1, max_value=pages, value=1, step=1, key=f"pg_{key}", label_visibility="collapsed")
+        start = (int(page) - 1) * page_size
+        end = min(start + page_size, n)
+        c1.caption(f"Showing {start + 1}-{end} of {n}  •  page {int(page)}/{pages}")
+
+        rows = []
+        for lot in items[start:end]:
+            v = lot.get("valuation_sources") or {}
+            rows.append({
+                "Signal": "🟢 BID" if lot["disp_act"] else "⚪ PASS",
+                "Source": lot.get("source_site", "Direct"),
+                "Type": "🔨 Auction" if lot["is_auction"] else "🏷️ BIN",
+                "Model": f"{str(lot.get('make') or '').title()} {str(lot.get('model') or '').title()}".strip(),
+                "Ask / Bid": num(lot.get("current_bid")),
+                "Landed": num(lot.get("total_landed_cost")),
+                "Value": lot["disp_retail"],
+                "Spread": lot["disp_profit"],
+                "Margin %": lot["disp_margin"],
+                "Max Bid": num(lot.get("max_bid")),
+                "Badge": lot.get("compliance_badge", ""),
+                "Link": lot.get("listing_url", "#"),
+            })
+        df = pd.DataFrame(rows)
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            height=int((len(rows) + 1) * 35 + 3),
+            column_config={
+                "Ask / Bid": st.column_config.NumberColumn(format="$%.0f"),
+                "Landed": st.column_config.NumberColumn(format="$%.0f"),
+                "Value": st.column_config.NumberColumn(format="$%.0f"),
+                "Spread": st.column_config.NumberColumn(format="$%+.0f"),
+                "Margin %": st.column_config.ProgressColumn(format="%.0f%%", min_value=-50, max_value=70),
+                "Max Bid": st.column_config.NumberColumn(format="$%.0f"),
+                "Link": st.column_config.LinkColumn("Listing", display_text="Open ↗"),
+            },
+        )
+
+    # ----- charts -----
+    with right:
+        top = sorted(items, key=lambda l: l["disp_profit"], reverse=True)[:6]
+        tdf = pd.DataFrame({
+            "Deal": [f"{str(l.get('make') or '').title()} {str(l.get('model') or '').title()}".strip()[:22] or "Unknown" for l in top],
+            "Spread": [l["disp_profit"] for l in top],
+        })
+        st.markdown('<div class="charttitle">💰 Top net spreads</div>', unsafe_allow_html=True)
+        bar = (
+            alt.Chart(tdf)
+            .mark_bar(cornerRadiusEnd=4)
+            .encode(
+                x=alt.X("Spread:Q", title=None, axis=alt.Axis(format="$,.0f", labelColor="#94a3b8", grid=False)),
+                y=alt.Y("Deal:N", sort="-x", title=None, axis=alt.Axis(labelColor="#cbd5e1", labelLimit=130)),
+                color=alt.condition(alt.datum.Spread > 0, alt.value(GREEN), alt.value(RED)),
+                tooltip=["Deal", alt.Tooltip("Spread:Q", format="$,.0f")],
+            )
+            .properties(height=175)
+            .configure_view(strokeWidth=0)
+        )
+        st.altair_chart(bar, use_container_width=True, theme=None)
+
+        src = pd.Series([str(l.get("source_site") or "Direct") for l in items]).value_counts().reset_index()
+        src.columns = ["Source", "Count"]
+        st.markdown('<div class="charttitle">🌐 Listings by source</div>', unsafe_allow_html=True)
+        donut = (
+            alt.Chart(src)
+            .mark_arc(innerRadius=42, outerRadius=78)
+            .encode(
+                theta="Count:Q",
+                color=alt.Color(
+                    "Source:N",
+                    scale=alt.Scale(range=[BLUE, GREEN, AMBER, "#a78bfa", "#f472b6", "#2dd4bf"]),
+                    legend=alt.Legend(orient="right", labelColor="#cbd5e1", title=None, labelLimit=110),
+                ),
+                tooltip=["Source", "Count"],
+            )
+            .properties(height=175)
+            .configure_view(strokeWidth=0)
+        )
+        st.altair_chart(donut, use_container_width=True, theme=None)
+
+
+tab_all, tab_auc, tab_alert, tab_sys = st.tabs(["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System"])
+
+with tab_all:
+    render_dashboard(filtered_lots, "all", "No listings match the current filters.")
+
+with tab_auc:
+    render_dashboard([l for l in filtered_lots if l["is_auction"]], "auc", "No auction listings match the current filters.")
+
+with tab_alert:
+    st.subheader("🔔 Instant arbitrage alerts")
+    st.write(f"Alert destination: `{user_email}`")
+    st.number_input("Target profit spread threshold ($)", value=100.0, step=25.0)
+    if st.button("Save alert threshold"):
+        st.success("Alert preferences updated.")
+
+with tab_sys:
+    st.subheader("System infrastructure")
+    st.write(f"**Total listings:** {len(all_lots)}  •  **Feed status:** {'Healthy' if all_lots else 'Sync required'}")
+    st.caption("The feed is refreshed hourly by a GitHub Actions workflow.")
+    if st.button("🔄 Force immediate re-sync"):
         try:
             import worker
             worker.main()
