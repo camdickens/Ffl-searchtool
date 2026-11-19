@@ -7,7 +7,7 @@ from datetime import datetime
 import streamlit as st
 import ui_art
 
-st.set_page_config(page_title="FFL Deal Radar", page_icon="🎯", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="FFL Deal Radar", page_icon="🎯", layout="wide", initial_sidebar_state="auto")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FEED_FILE = os.path.join(BASE_DIR, "feed_data.json")
@@ -93,16 +93,16 @@ st.markdown(
     radial-gradient(800px 500px at 50% 120%, #0b3b2e 0%, transparent 60%), #080d17; }
 header[data-testid="stHeader"] { background: transparent; height: 2.4rem; }
 [data-testid="stToolbar"], [data-testid="stDecoration"], footer { display: none !important; }
-.block-container { padding: 0 1.2rem 1.5rem 1.2rem !important; max-width: 100% !important; }
+.block-container { padding: 3rem 1.2rem 2rem 1.2rem !important; max-width: 100% !important; }
 section[data-testid="stSidebar"] > div { background: linear-gradient(180deg,#0f172a 0%,#101a33 55%,#0c2a2a 100%); padding-top: 0.6rem; }
-div[data-testid="stVerticalBlock"] { gap: 0.55rem; }
+div[data-testid="stVerticalBlock"] { gap: 1rem; }
 /* keep control columns on one row, even on phones */
 div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 0.5rem !important; align-items: center; }
 div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important; }
 
 .hero { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:12px;
         background: linear-gradient(100deg,#0b1d3a 0%,#143a5e 38%,#0e5a4a 75%,#1b7a46 100%);
-        border:0; border-bottom:1px solid #2b4a6b; border-radius:0 0 18px 18px; padding:2.7rem 1.6rem 14px 1.6rem; margin:0 -1.2rem 4px -1.2rem;
+        border:0; border-top:1px solid #2b4a6b; border-bottom:1px solid #2b4a6b; border-radius:0; padding:16px 1.6rem; margin:0 -1.2rem 10px -1.2rem;
         box-shadow: 0 8px 28px rgba(14,90,74,.28); }
 .hero:after { content:""; position:absolute; inset:0; pointer-events:none;
         background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.07) 50%, transparent 60%);
@@ -116,8 +116,8 @@ div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important
 .pill:before { content:""; width:7px; height:7px; border-radius:50%; background:#22c55e; animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(34,197,94,.7); } 50% { box-shadow:0 0 0 6px rgba(34,197,94,0); } }
 
-.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
-.kpi { position:relative; overflow:hidden; border-radius:14px; padding:10px 14px 10px 16px;
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:6px; }
+.kpi { position:relative; overflow:hidden; border-radius:14px; padding:12px 16px 12px 18px;
        background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, #0f172a) 0%, #0f172a 70%);
        border:1px solid color-mix(in srgb, var(--accent) 45%, #1f2937); }
 .kpi:before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent); box-shadow:0 0 14px var(--accent); }
@@ -125,11 +125,11 @@ div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important
 .kpi .lbl { color:#a9b8cc; font-size:.68rem; text-transform:uppercase; letter-spacing:.9px; }
 .kpi .val { color:var(--accent); font-size:1.55rem; font-weight:800; line-height:1.2; }
 
-.charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; }
-.card { background: linear-gradient(160deg,#131c31 0%,#0e1526 100%); border:1px solid #243049; border-radius:14px; padding:10px 14px; }
+.charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin:8px 0 6px 0; }
+.card { background: linear-gradient(160deg,#131c31 0%,#0e1526 100%); border:1px solid #243049; border-radius:14px; padding:14px 16px; }
 .card h4 { margin:0 0 8px 0; font-size:.76rem; color:#dbe5f3; font-weight:700; letter-spacing:.6px; }
 .sm { color:#7d8ca3; font-size:.7rem; font-weight:400; }
-.brow { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:.74rem; color:#d0dbea; }
+.brow { display:flex; align-items:center; gap:8px; margin:8px 0; font-size:.74rem; color:#d0dbea; }
 .brow .nm { width:42%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .brow .bar { flex:1; height:9px; background:#1b2538; border-radius:5px; overflow:hidden; }
 .brow .bar i { display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,#06b6d4,#22c55e,#a3e635); }
@@ -142,7 +142,7 @@ div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important
 .hist div b { display:block; border-radius:5px 5px 0 0; background:linear-gradient(180deg,#f472b6,#8b5cf6 60%,#38bdf8); margin-bottom:2px; }
 
 /* ---------- deal list ---------- */
-.dgrid { --cols: 64px minmax(190px,3.2fr) repeat(4,minmax(72px,1fr)) minmax(112px,1.3fr) minmax(104px,1.1fr) 70px; }
+.dgrid { margin-top:8px; --cols: 64px minmax(190px,3.2fr) repeat(4,minmax(72px,1fr)) minmax(112px,1.3fr) minmax(104px,1.1fr) 70px; }
 .dhead, .deal { display:grid; grid-template-columns:var(--cols); align-items:center; column-gap:10px; }
 .dhead { padding:8px 14px; color:#9fb0c7; font-size:.66rem; text-transform:uppercase; letter-spacing:.7px; font-weight:700;
          background:#111a2e; border:1px solid #243049; border-radius:12px 12px 0 0; }
@@ -191,10 +191,15 @@ div[data-testid="stColumn"], div[data-testid="column"] { min-width: 0 !important
   .d-num { text-align:left; } .d-num .k { display:block; }
   .hero svg.hero-art { display:none; }
 }
-/* filters panel: wraps on small screens, looks like a card */
-div[data-testid="stExpander"] { border:1px solid #243049 !important; border-radius:14px !important; background:linear-gradient(160deg,#131c31 0%,#0e1526 100%); }
-div[data-testid="stExpander"] div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; align-items: flex-start; }
-div[data-testid="stExpander"] div[data-testid="stColumn"], div[data-testid="stExpander"] div[data-testid="column"] { min-width: 220px !important; flex: 1 1 220px !important; }
+/* top bar: navigation pills + account button, right-aligned above the header */
+.st-key-topbar div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; justify-content: flex-end; align-items: center; gap: 0.7rem !important; }
+.st-key-topbar div[data-testid="stColumn"], .st-key-topbar div[data-testid="column"] { flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; }
+.st-key-nav_view div[role="radiogroup"] { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.st-key-nav_view label[data-baseweb="radio"] { background:#111a2e; border:1px solid #243049; border-radius:999px; padding:5px 16px; margin:0; cursor:pointer; }
+.st-key-nav_view label[data-baseweb="radio"] > div:first-of-type { display:none; }
+.st-key-nav_view label[data-baseweb="radio"]:has(input:checked) { background:linear-gradient(135deg,#22c55e,#a3e635); border-color:transparent; }
+.st-key-nav_view label[data-baseweb="radio"]:has(input:checked) * { color:#04130a !important; font-weight:800; }
+.st-key-topbar [data-testid="stPopover"] button { border-radius:999px; border:1px solid #2b4a6b; background:#111a2e; padding:5px 16px; }
 button[data-baseweb="tab"] { padding: 4px 14px !important; }
 div[data-testid="stTabs"] { margin-top: -4px; }
 </style>
@@ -375,66 +380,58 @@ elif not email_verified:
 feed = get_feed()
 all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
 
+# ---------------- TOP BAR: navigation (top right) + account ----------------
+NAV_OPTIONS = ["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System"]
+with st.container(key="topbar"):
+    nav_col, acct_col = st.columns([3, 1])
+    with nav_col:
+        view = st.radio("Navigation", NAV_OPTIONS, horizontal=True, label_visibility="collapsed", key="nav_view")
+    with acct_col:
+        with st.popover("👤 Manage account"):
+            st.caption(f"Signed in as {user_email}")
+            if sub_state == "trialing":
+                st.caption("Free trial active")
+            if PORTAL_LINK and sub_state in ("active", "trialing"):
+                st.link_button("Manage billing", PORTAL_LINK, use_container_width=True)
+            if st.button("🚪 Sign out", use_container_width=True):
+                st.logout()
+
 # ---------------- HEADER PLACEHOLDER (filled in after the filters run) ----------------
 hero_ph = st.empty()
 
-# ---------------- ACCOUNT (sidebar) ----------------
+# ---------------- FILTERS (left sidebar) ----------------
 with st.sidebar:
-    st.markdown("### 🎯 FFL Radar")
-    st.caption(f"Signed in as {user_email}")
-    if sub_state == "trialing":
-        st.caption("Free trial active")
-    if PORTAL_LINK and sub_state in ("active", "trialing"):
-        st.link_button("Manage billing", PORTAL_LINK, use_container_width=True)
-    if st.button("🚪 Sign out", use_container_width=True):
-        st.logout()
-
-# ---------------- FILTERS (collapsible, directly under the header) ----------------
-present_sources = sorted({str(l.get("source_site")) for l in all_lots if l.get("source_site")})
-source_options = sorted(set(ALL_PLATFORMS) | set(present_sources))
-makes = sorted({str(l.get("make") or "").title() for l in all_lots if l.get("make")})
-calibers = sorted({str(l.get("caliber") or "").upper() for l in all_lots if l.get("caliber")})
-prices = [num(l.get("current_bid")) for l in all_lots]
-p_max = int(max(prices)) if prices else 5000
-p_max = max(100, int(math.ceil(p_max / 100.0) * 100))
-
-with st.expander("🎛️ Filters", expanded=True):
-    r1a, r1b, r1c, r1d = st.columns(4)
-    with r1a:
-        mode = st.radio("Legal framework", ["Massachusetts Compliant", "Federal Standard"], horizontal=False)
+    st.markdown("### 🎛️ Filters")
+    mode = st.radio("Legal framework", ["Massachusetts Compliant", "Federal Standard"], horizontal=False)
     is_ma = (mode == "Massachusetts Compliant")
-    with r1b:
-        selected_sources = st.multiselect("Source platforms", source_options, default=present_sources or source_options)
-    with r1c:
-        search_query = st.text_input("🔍 Search keyword", "").strip().lower()
-    with r1d:
-        selected_makes = st.multiselect("Brand / make", makes, default=[])
 
-    r2a, r2b, r2c, r2d = st.columns(4)
-    with r2a:
-        selected_calibers = st.multiselect("Caliber", calibers, default=[]) if calibers else []
-    with r2b:
-        listing_type = st.radio("Listing type", ["All", "Auctions", "Buy-It-Now"], horizontal=True)
-    with r2c:
-        condition_pick = st.radio("Condition", ["All", "Used", "New"], horizontal=True)
-    with r2d:
-        sort_by = st.selectbox("Sort by", ["Best net spread", "Highest margin", "Lowest price", "Highest price", "Source A-Z"])
+    present_sources = sorted({str(l.get("source_site")) for l in all_lots if l.get("source_site")})
+    source_options = sorted(set(ALL_PLATFORMS) | set(present_sources))
+    selected_sources = st.multiselect("Source platforms", source_options, default=present_sources or source_options)
 
-    r3a, r3b, r3c = st.columns(3)
-    with r3a:
-        price_range = st.slider("Price range ($)", 0, p_max, (0, p_max), 25)
-    with r3b:
-        min_profit = st.slider("Min net spread ($)", -300, 800, -300, 25)
-    with r3c:
-        min_margin = st.slider("Min margin (%)", -100, 70, -100, 5)
+    search_query = st.text_input("🔍 Search keyword", "").strip().lower()
 
-    r4a, r4b, r4c = st.columns(3)
-    with r4a:
-        valued_only = st.checkbox("Valued listings only", value=False)
-    with r4b:
-        action_only = st.checkbox("Show 'BID' targets only", value=False)
-    with r4c:
-        pre_ban_only = st.checkbox("Pre-ban grandfathered only", value=False) if is_ma else False
+    makes = sorted({str(l.get("make") or "").title() for l in all_lots if l.get("make")})
+    selected_makes = st.multiselect("Brand / make", makes, default=[])
+
+    calibers = sorted({str(l.get("caliber") or "").upper() for l in all_lots if l.get("caliber")})
+    selected_calibers = st.multiselect("Caliber", calibers, default=[]) if calibers else []
+
+    listing_type = st.radio("Listing type", ["All", "Auctions", "Buy-It-Now"], horizontal=True)
+    condition_pick = st.radio("Condition", ["All", "Used", "New"], horizontal=True)
+
+    prices = [num(l.get("current_bid")) for l in all_lots]
+    p_max = int(max(prices)) if prices else 5000
+    p_max = max(100, int(math.ceil(p_max / 100.0) * 100))
+    price_range = st.slider("Price range ($)", 0, p_max, (0, p_max), 25)
+
+    min_profit = st.slider("Min net spread ($)", -300, 800, -300, 25)
+    min_margin = st.slider("Min margin (%)", -100, 70, -100, 5)
+    valued_only = st.checkbox("Valued listings only", value=False)
+    action_only = st.checkbox("Show 'BID' targets only", value=False)
+    pre_ban_only = st.checkbox("Pre-ban grandfathered only", value=False) if is_ma else False
+
+    sort_by = st.selectbox("Sort by", ["Best net spread", "Highest margin", "Lowest price", "Highest price", "Source A-Z"])
 
 # ---------------- ENRICH ----------------
 for l in all_lots:
@@ -642,22 +639,20 @@ def render_dashboard(items, key):
     st.markdown(table_html(items[start:end]), unsafe_allow_html=True)
 
 
-tab_all, tab_auc, tab_alert, tab_sys = st.tabs(["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System"])
-
-with tab_all:
+if view == NAV_OPTIONS[0]:
     render_dashboard(filtered_lots, "all")
 
-with tab_auc:
+elif view == NAV_OPTIONS[1]:
     render_dashboard([l for l in filtered_lots if l["is_auction"]], "auc")
 
-with tab_alert:
+elif view == NAV_OPTIONS[2]:
     st.subheader("🔔 Instant arbitrage alerts")
     st.write(f"Alert destination: **{user_email}**")
     st.number_input("Target profit spread threshold ($)", value=100.0, step=25.0)
     if st.button("Save alert threshold"):
         st.success("Alert preferences updated.")
 
-with tab_sys:
+else:
     st.subheader("System infrastructure")
     per_source = feed.get("per_source") or {}
     st.write(f"**Total listings:** {len(all_lots)}  •  **Feed status:** {'Healthy' if all_lots else 'Sync required'}")
