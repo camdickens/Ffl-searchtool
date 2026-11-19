@@ -2,6 +2,7 @@ import os
 import html
 import json
 import math
+import re
 import traceback
 from datetime import datetime
 import streamlit as st
@@ -526,7 +527,7 @@ feed = get_feed()
 all_lots = [l for l in feed.get("lots", []) if isinstance(l, dict)]
 
 # ---------------- TOP BAR: navigation (top right) + account ----------------
-NAV_OPTIONS = ["📋 Inventory", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System", "⚖️ Legal"]
+NAV_OPTIONS = ["📋 Inventory", "🔎 Find a Gun", "🔨 Live Auctions", "🔔 Alerts", "⚙️ System", "⚖️ Legal"]
 with st.container(key="topbar"):
     nav_col, acct_col = st.columns([3.6, 1])
     with nav_col:
@@ -790,20 +791,102 @@ def render_dashboard(items, key):
     st.markdown(table_html(items[start:end]), unsafe_allow_html=True)
 
 
+def _norm(s):
+    return re.sub(r"[^a-z0-9]+", " ", str(s).lower()).strip()
+
+
+def render_find_gun():
+    st.subheader("Find a specific gun")
+    st.caption(
+        "Searches every listing from every source and ignores the sidebar filters. Prices are landed cost "
+        "(ask plus estimated shipping and transfer). Auction prices are current bids and can rise."
+    )
+    counts = {}
+    for l in all_lots:
+        nm = gun_name(l)
+        counts[nm] = counts.get(nm, 0) + 1
+    pick_opts = [""] + [n for n, _ in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0].lower()))][:250]
+    c1, c2, c3, c4 = st.columns([3, 2.4, 1.5, 1.9])
+    q = c1.text_input("Gun model", key="find_q", placeholder="e.g. Glock 19 Gen 5, Colt Python, Sig P365")
+    pick = c2.selectbox(
+        "Or pick from the feed", pick_opts, key="find_pick",
+        format_func=lambda n: "Choose a model..." if not n else f"{n} ({counts[n]})",
+    )
+    cond = c3.selectbox("Condition", ["All", "Used", "New"], key="find_cond")
+    sort = c4.selectbox("Sort by", ["Lowest landed price", "Best net spread", "Highest price"], key="find_sort")
+    query = q.strip() or pick
+    if not query:
+        st.info("Type a make and model above, or pick one from the feed, to see every listing for it ranked by price.")
+        return
+    tokens = _norm(query).split()
+    joined = "".join(tokens)
+
+    def hit(l):
+        hay = _norm(f"{l.get('make','')} {l.get('model','')} {l.get('title','')} {l.get('caliber','')}")
+        words = hay.split()
+        if all(any(w.startswith(t) for w in words) for t in tokens):
+            return True
+        if len(tokens) == 2 and tokens[1][:1].isdigit() and tokens[0] in hay:
+            if any(w.startswith(tokens[0][:1] + tokens[1]) for w in words):
+                return True
+        return len(joined) >= 3 and joined in hay.replace(" ", "")
+
+    items = [
+        l for l in all_lots
+        if hit(l) and (cond == "All" or str(l.get("condition", "used")).lower() == cond.lower())
+    ]
+    if sort == "Best net spread":
+        items.sort(key=lambda l: (l["valued"], l["disp_profit"]), reverse=True)
+    elif sort == "Highest price":
+        items.sort(key=lambda l: num(l.get("total_landed_cost")), reverse=True)
+    else:
+        items.sort(key=lambda l: (num(l.get("total_landed_cost")) <= 0, num(l.get("total_landed_cost"))))
+    if not items:
+        st.warning("No listings match that search right now. Try fewer words (for example just the make and model number), or check the spelling.")
+        return
+    landed = sorted(num(l.get("total_landed_cost")) for l in items if num(l.get("total_landed_cost")) > 0)
+    low = landed[0] if landed else 0.0
+    high = landed[-1] if landed else 0.0
+    mid = (landed[len(landed) // 2] if len(landed) % 2 else (landed[len(landed) // 2 - 1] + landed[len(landed) // 2]) / 2.0) if landed else 0.0
+    cheapest = next((l for l in items if num(l.get("total_landed_cost")) == low and low > 0), None)
+    valued = [l for l in items if l["valued"]]
+    best = max((l["disp_profit"] for l in valued), default=0.0)
+    cards = [
+        ("Matches", f"{len(items):,}", "#38bdf8", "&#128269;"),
+        ("Lowest landed", usd(low) if landed else "&mdash;", "#22c55e", "&#128181;"),
+        ("Median landed", usd(mid) if landed else "&mdash;", "#f59e0b", "&#128200;"),
+        ("Highest landed", usd(high) if landed else "&mdash;", "#c084fc", "&#128285;"),
+        ("Best net spread", usd(best) if valued else "&mdash;", "#a3e635", "&#128176;"),
+    ]
+    st.markdown(
+        '<div class="kpis">' + "".join(
+            f'<div class="kpi" style="--accent:{c}"><div class="ic">{ic}</div><div class="lbl">{lab}</div><div class="val">{val}</div></div>'
+            for lab, val, c, ic in cards
+        ) + "</div>",
+        unsafe_allow_html=True,
+    )
+    if cheapest is not None:
+        st.caption(f"Cheapest: {gun_name(cheapest)} at {cheapest.get('source_site') or 'Direct'} for {usd(low)} landed.  Showing {len(items)} listing(s) for \"{query}\".")
+    st.markdown(table_html(items), unsafe_allow_html=True)
+
+
 if view == NAV_OPTIONS[0]:
     render_dashboard(filtered_lots, "all")
 
 elif view == NAV_OPTIONS[1]:
-    render_dashboard([l for l in filtered_lots if l["is_auction"]], "auc")
+    render_find_gun()
 
 elif view == NAV_OPTIONS[2]:
+    render_dashboard([l for l in filtered_lots if l["is_auction"]], "auc")
+
+elif view == NAV_OPTIONS[3]:
     st.subheader("🔔 Instant arbitrage alerts")
     st.write(f"Alert destination: **{user_email}**")
     st.number_input("Target profit spread threshold ($)", value=100.0, step=25.0)
     if st.button("Save alert threshold"):
         st.success("Alert preferences updated.")
 
-elif view == NAV_OPTIONS[3]:
+elif view == NAV_OPTIONS[4]:
     st.subheader("System infrastructure")
     per_source = feed.get("per_source") or {}
     st.write(f"**Total listings:** {len(all_lots)}  •  **Feed status:** {'Healthy' if all_lots else 'Sync required'}")
