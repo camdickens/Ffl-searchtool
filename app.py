@@ -22,7 +22,6 @@ def get_secret(name, default=""):
         return default
 
 
-ACCESS_PASSCODE = get_secret("ACCESS_PASSCODE")
 CRON_TOKEN = get_secret("CRON_TOKEN")
 
 ALL_PLATFORMS = [
@@ -73,25 +72,36 @@ def get_feed():
     return {"last_updated": datetime.now().strftime("%Y-%m-%d %I:%M %p"), "lots": []}
 
 
-# ---------------- ACCESS GATE ----------------
-if not ACCESS_PASSCODE:
+# ---------------- ACCESS GATE (Google sign-in) ----------------
+ALLOWED_EMAILS = {e.strip().lower() for e in get_secret("ALLOWED_EMAILS").split(",") if e.strip()}
+
+if not hasattr(st, "login"):
     st.title("🎯 FFL Deal Radar")
-    st.error("ACCESS_PASSCODE is not configured. Add it to your host's secrets or environment variables.")
+    st.error("Google sign-in needs Streamlit 1.42 or newer. Update streamlit in requirements.txt.")
     st.stop()
 
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
+try:
+    auth_configured = "auth" in st.secrets
+except Exception:
+    auth_configured = False
 
-if not st.session_state["authenticated"]:
-    st.title("🎯 FFL Deal Radar — Authorized Portal")
-    with st.form("auth_form"):
-        code_input = st.text_input("Dealer Access Key", type="password")
-        if st.form_submit_button("Enter Terminal", use_container_width=True):
-            if code_input.strip() == ACCESS_PASSCODE:
-                st.session_state["authenticated"] = True
-                st.rerun()
-            else:
-                st.error("Invalid access code.")
+if not auth_configured:
+    st.title("🎯 FFL Deal Radar")
+    st.error("Google sign-in is not configured yet. Add an [auth] section to the app secrets.")
+    st.stop()
+
+if not st.user.is_logged_in:
+    st.title("🎯 FFL Deal Radar — Dealer Portal")
+    st.write("Sign in with your Google account to continue.")
+    st.button("Sign in with Google", on_click=st.login, use_container_width=True)
+    st.stop()
+
+user_email = str(st.user.get("email") or "").lower()
+email_verified = st.user.get("email_verified", True)
+if not ALLOWED_EMAILS or user_email not in ALLOWED_EMAILS or not email_verified:
+    st.title("🎯 FFL Deal Radar")
+    st.error(f"{user_email or 'This account'} is not authorized for this portal.")
+    st.button("Sign out", on_click=st.logout)
     st.stop()
 
 # ---------------- DEALER DASHBOARD ----------------
@@ -100,9 +110,9 @@ with st.sidebar:
     st.success("🟢 100% Verified Live Links")
     st.caption("Operator: `camerondickens9000@gmail.com`")
 
-    if st.button("🚪 Lock Terminal", use_container_width=True):
-        st.session_state["authenticated"] = False
-        st.rerun()
+    st.caption(f"Signed in as {user_email}")
+    if st.button("🚪 Sign out", use_container_width=True):
+        st.logout()
 
     st.divider()
     active_view = st.radio("Select Section", ["📋 All Inventory Feed", "🔨 Live Auctions", "🔔 Push Alerts", "⚙️ System Status"])
