@@ -844,12 +844,18 @@ def web_search(query):
         return {"error": "The web search timed out or failed. Please try again in a moment."}
     rows, seen = [], set()
 
-    def add(title, link, snippet, price_hint):
+    def host_of(s):
+        m = re.search(r"(?:https?://)?([a-z0-9][a-z0-9.-]*\.[a-z]{2,})", str(s or "").lower())
+        return m.group(1).replace("www.", "") if m else ""
+
+    def add(title, link, snippet, price_hint, hint=""):
         link = str(link or "").strip()
         title = str(title or "").strip()
         if not link.lower().startswith(("http://", "https://")) or not title:
             return
         host = (urlparse(link).netloc or "").lower().replace("www.", "")
+        if host == "google.com" or host.endswith(".google.com"):
+            host = host_of(hint) or "via Google"
         if not host or any(host == b or host.endswith("." + b) for b in WEB_BLOCKED):
             return
         if link in seen:
@@ -860,15 +866,15 @@ def web_search(query):
 
     for it in (data.get("shopping_results") or []):
         if isinstance(it, dict):
-            add(it.get("title"), it.get("link") or it.get("product_link") or it.get("url"), it.get("snippet") or it.get("source"), it.get("price") or it.get("extracted_price"))
+            add(it.get("title"), it.get("link") or it.get("product_link") or it.get("url"), it.get("snippet") or it.get("source"), it.get("price") or it.get("extracted_price"), it.get("source") or it.get("merchant") or it.get("displayed_link") or it.get("domain"))
     for it in (data.get("organic_results") or []):
         if isinstance(it, dict):
-            add(it.get("title"), it.get("link") or it.get("url"), it.get("snippet") or it.get("description"), None)
+            add(it.get("title"), it.get("link") or it.get("url"), it.get("snippet") or it.get("description"), None, it.get("displayed_link") or it.get("domain") or it.get("source"))
     toks = _norm(query).split()
     strict = [x for x in rows if all(t in _norm(x["title"] + " " + x["snippet"] + " " + x["link"]) for t in toks)]
     rows = strict if len(strict) >= 3 else rows
     rows.sort(key=lambda x: (x["price"] is None, x["price"] or 0.0))
-    out = {"rows": rows[:25]}
+    out = {"rows": rows[:25], "raw": {"keys": list(data.keys())[:20], "shopping": (data.get("shopping_results") or [])[:1], "organic": (data.get("organic_results") or [])[:2]}}
     store["cache"][ck] = (time.time(), out)
     return out
 
@@ -889,6 +895,9 @@ def render_web_search(query):
     if res.get("error"):
         st.warning(res["error"])
         return
+    if is_owner and res.get("raw"):
+        with st.expander("Raw search data (owner only)"):
+            st.json(res["raw"])
     rows = res.get("rows") or []
     if not rows:
         st.info("The web search did not find anything for that gun. Try a simpler name.")
